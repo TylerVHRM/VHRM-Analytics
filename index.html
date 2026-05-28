@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vireo Health Rocky Mountain | Category Performance Analytics</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>.upload-strip{display:none!important}#histToggleWrap{display:none!important}</style>
+
+<style>
+:root{--ink:#0d1117;--ink2:#3a3f4b;--ink3:#6b7280;--surface:#fff;--raised:#f8f9fc;--border:#e4e7ed;--border2:#cbd0dc;--accent:#1a56db;--sidebar-w:280px;--banner-h:52px;--ctrl-h:52px;--kpi-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--raised);color:var(--ink);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px}
+.banner{position:fixed;top:0;left:0;right:0;height:var(--banner-h);background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:100;overflow:hidden}
+.b-left{display:flex;align-items:center;gap:14px}
+.b-logo{font-family:'Syne','Trebuchet MS','Arial Black',Impact,sans-serif;font-size:18px;font-weight:800;color:#fff}
+.b-logo span{color:#4d9fff}
+.b-div{width:1px;height:22px;background:#ffffff28}
+.b-sub{font-size:11px;color:#ffffff60;font-family:'DM Mono','Courier New',Courier,monospace}
+.b-tag{font-size:10px;font-family:'DM Mono','Courier New',Courier,monospace;background:#ffffff14;border:1px solid #ffffff20;color:#ffffff80;padding:3px 9px;border-radius:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
+.app{position:fixed;top:var(--banner-h);left:0;right:0;bottom:0;display:flex}
+.sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-head{padding:12px 14px 8px;font-family:'Syne','Trebuchet MS','Arial Black',Impact,sans-serif;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.an{display:flex;gap:4px}
+.an button{font-size:9px;padding:2px 7px;border-radius:3px;border:1px solid var(--border2);background:var(--raised);color:var(--ink2);cursor:pointer;font-family:'DM Mono','Courier New',Courier,monospace}
+.an button:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.ftabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.ftab{flex:1;padding:8px 2px;font-size:10px;font-weight:600;border:none;cursor:pointer;background:var(--raised);color:var(--ink3);border-bottom:2px solid transparent;transition:all .15s}
+.ftab:hover{color:var(--ink);background:var(--surface)}
+.ftab.on{color:var(--accent);background:var(--surface);border-bottom-color:var(--accent);font-weight:700}
+.sb-search{padding:9px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sb-search input{width:100%;padding:6px 10px;border:1px solid var(--border2);border-radius:5px;font-size:11px;background:var(--raised);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:var(--ink)}
+.sb-search input:focus{outline:none;border-color:var(--accent)}
+.filter-list{overflow-y:auto;flex:1}
+.fi{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.fi:hover{background:#f0f4ff}
+.fi input[type=checkbox]{accent-color:var(--accent);cursor:pointer;flex-shrink:0;width:13px;height:13px}
+.fi-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink2);font-size:11px}
+.fi-badge{font-size:9px;color:var(--ink3);background:var(--raised);padding:2px 6px;border-radius:10px;border:1px solid var(--border);font-family:'DM Mono','Courier New',Courier,monospace;flex-shrink:0}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.upload-strip{background:#fffbeb;border-bottom:1px solid #fde68a;padding:7px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;font-size:11px;color:#92400e;flex-wrap:wrap}
+.up-btn{background:#fff;border:1px solid #fcd34d;border-radius:4px;padding:4px 12px;cursor:pointer;font-weight:600;color:#92400e;font-size:11px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;white-space:nowrap}
+.up-btn:hover{background:#fef3c7}
+#csvInput{display:none}
+#upStatus{font-family:'DM Mono','Courier New',Courier,monospace;font-size:10px;color:#92400e}
+.controls{height:var(--ctrl-h);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;overflow-x:auto}
+.ctrl{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.ctrl label{font-size:10px;font-weight:600;color:var(--ink3);letter-spacing:.5px;text-transform:uppercase}
+.ctrl select,.ctrl input[type=date]{padding:5px 8px;border:1px solid var(--border2);border-radius:5px;font-size:11px;background:var(--raised);color:var(--ink);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}
+.ctrl select:focus,.ctrl input[type=date]:focus{outline:none;border-color:var(--accent)}
+.vdiv{width:1px;height:26px;background:var(--border);flex-shrink:0}
+.cpills{display:flex;gap:4px;flex-wrap:nowrap}
+.cpill{padding:5px 11px;font-size:10px;font-weight:600;border:1px solid var(--border2);background:var(--raised);cursor:pointer;border-radius:20px;color:var(--ink2);white-space:nowrap;transition:all .15s;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}
+.cpill:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cpill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* Historical overlay toggle — hidden until a CSV is uploaded */
+#histToggleWrap{display:none;align-items:center;gap:6px}
+#histToggleWrap.visible{display:flex}
+#histToggle{padding:5px 12px;font-size:10px;font-weight:700;border:1.5px solid #d97706;background:#fff7ed;cursor:pointer;border-radius:20px;color:#92400e;white-space:nowrap;transition:all .15s;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;letter-spacing:.2px}
+#histToggle.on{background:#d97706;color:#fff;border-color:#d97706}
+.hist-legend{font-size:9px;color:#92400e;font-family:'DM Mono','Courier New',Courier,monospace;display:flex;align-items:center;gap:5px}
+.hist-legend-line{width:22px;height:2px;background:#d97706;border-top:2px dashed #d97706}
+.kpi-strip{height:var(--kpi-h);background:var(--surface);border-bottom:1px solid var(--border);display:flex;flex-shrink:0}
+.kpi{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;border-right:1px solid var(--border);padding:0 8px;text-align:center}
+.kpi:last-child{border-right:none}
+.kpi-label{font-size:9px;font-weight:600;color:var(--ink3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:2px}
+.kpi-value{font-size:18px;font-weight:700;color:var(--ink);font-family:'Syne','Trebuchet MS','Arial Black',Impact,sans-serif;line-height:1}
+.kpi-sub{font-size:9px;color:var(--ink3);font-family:'DM Mono','Courier New',Courier,monospace;margin-top:2px;min-height:12px}
+.chart-area{flex:1;padding:16px;overflow:hidden;display:flex;flex-direction:column}
+.chart-card{background:var(--surface);border-radius:8px;border:1px solid var(--border);padding:16px 18px;flex:1;display:flex;flex-direction:column;min-height:0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.chart-hd{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;flex-shrink:0}
+.chart-title{font-family:'Syne','Trebuchet MS','Arial Black',Impact,sans-serif;font-size:13px;font-weight:700;color:var(--ink)}
+.chart-meta{font-size:10px;color:var(--ink3);font-family:'DM Mono','Courier New',Courier,monospace}
+.chart-wrap{flex:1;position:relative;min-height:0}
+canvas{max-height:100%!important}
+.empty-state{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--ink3);font-family:'DM Mono','Courier New',Courier,monospace}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--ink);color:#fff;padding:10px 18px;border-radius:6px;font-size:12px;font-family:'DM Mono','Courier New',Courier,monospace;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="banner">
+  <div class="b-left">
+    <div class="b-logo">Vireo Health<span>.</span></div>
+    <div class="b-div"></div>
+    <div class="b-sub">ROCKY MOUNTAIN &nbsp;/&nbsp; CATEGORY PERFORMANCE ANALYTICS</div>
+  </div>
+  <div class="b-tag" id="bTag">Sales by Product &amp; Location per Day - 20260526-113603260.csv · 175,470 records</div>
+</div>
+<div class="app">
+  <div class="sidebar">
+    <div class="sb-head">
+      <span id="sbTitle">BRAND FILTER</span>
+      <div class="an"><button onclick="selAll(true)">All</button><button onclick="selAll(false)">None</button></div>
+    </div>
+    <div class="ftabs">
+      <button class="ftab on" id="ftBrand" onclick="setDim('brand')">Brand</button>
+      <button class="ftab" id="ftSKU" onclick="setDim('sku')">SKU</button>
+      <button class="ftab" id="ftCatGrp" onclick="setDim('catgrp')">Category</button>
+      <button class="ftab" id="ftCat" onclick="setDim('cat')">Sub-Category</button>
+      <button class="ftab" id="ftStore" onclick="setDim('store')">Store</button>
+    </div>
+    <div class="sb-search"><input type="text" id="srch" placeholder="Search…" oninput="renderSB()"></div>
+    <div class="filter-list" id="fList"></div>
+  </div>
+  <div class="main">
+    <div class="upload-strip">
+      <span>ⓘ Weekly historical baseline loaded. Upload CSV for daily / SKU detail..</span>
+      <span>Upload new sales CSV to compare:</span>
+      <button class="up-btn" onclick="document.getElementById('csvInput').click()">📄 Upload CSV</button>
+      <input type="file" id="csvInput" accept=".csv,.txt" onchange="loadCSV(event)">
+      <span id="upStatus">Loaded 376,992 rows · 201 brands · 56 stores</span>
+      <button class="up-btn" id="exportBtn" onclick="exportWithData()" style="display: inline-block; background: rgb(11, 122, 78); color: rgb(255, 255, 255); border-color: rgb(11, 122, 78);" title="Download a new HTML file with your CSV data baked in — share that file via Netlify">💾 Export &amp; Share</button>
+    </div>
+    <div class="controls">
+      <div class="ctrl"><label>From</label><input type="date" id="dFrom" onchange="debouncedUpdate()"></div>
+      <div class="ctrl"><label>To</label><input type="date" id="dTo" onchange="debouncedUpdate()"></div>
+      <div class="ctrl"><label>Group</label>
+        <select id="gran" onchange="debouncedUpdate()">
+          <option value="day">Daily</option>
+          <option value="week" selected="">Weekly</option>
+          <option value="month">Monthly</option>
+        </select>
+      </div>
+      <div class="vdiv"></div>
+      <div class="cpills">
+        <button class="cpill on" id="cpAUR" onclick="setC('aur')">AUR over Time</button>
+        <button class="cpill" id="cpUnits" onclick="setC('units')">Units over Time</button>
+        <button class="cpill" id="cpDaily" onclick="setC('daily')">Daily Units</button>
+        <button class="cpill" id="cpR7" onclick="setC('r7')">7-Day Rolling Avg</button>
+        <button class="cpill" id="cpOverlay" onclick="setC('overlay')">AUR Overlay</button>
+        <button class="cpill" id="cpMargin" onclick="setC('margin')">Margin over Time</button>
+        <button class="cpill" id="cpRevAUR" onclick="setC('revAUR')">Rev vs AUR ·</button>
+        <button class="cpill" id="cpMarAUR" onclick="setC('marAUR')">Margin $ vs AUM ·</button>
+        <button class="cpill" id="cpBubble" onclick="setC('bubble')">Units vs Margin $</button>
+        <button class="cpill" id="cpUnitsRev" onclick="setC('unitsRev')">Units vs Revenue</button>
+        <button class="cpill" id="cpGrams" onclick="setC('grams')">Grams over Time</button>
+      </div>
+      <div class="vdiv"></div>
+      <!-- Historical overlay toggle — shown only after CSV upload -->
+      <div id="histToggleWrap" class="visible">
+        <button id="histToggle" onclick="toggleHist()" class="on">◯ Historical</button>
+        <div class="hist-legend"><div class="hist-legend-line"></div>Historical</div>
+      </div>
+    </div>
+    <div class="kpi-strip">
+      <div class="kpi"><div class="kpi-label">Units</div><div class="kpi-value" id="kU">2615K</div><div class="kpi-sub" id="kUd">-36.6% vs hist</div></div>
+      <div class="kpi"><div class="kpi-label">Gross Sales</div><div class="kpi-value" id="kS">$27.9M</div><div class="kpi-sub" id="kSd">-48.3% vs hist</div></div>
+      <div class="kpi"><div class="kpi-label">Gross Profit</div><div class="kpi-value" id="kP">$11.3M</div><div class="kpi-sub" id="kPd">-52.0% vs hist</div></div>
+      <div class="kpi"><div class="kpi-label">Margin</div><div class="kpi-value" id="kM">40.4%</div><div class="kpi-sub" id="kMd">-3.1pp vs hist</div></div>
+      <div class="kpi"><div class="kpi-label">Avg Unit Retail</div><div class="kpi-value" id="kA">$10.67</div><div class="kpi-sub" id="kAd">$-2.42 vs hist</div></div>
+      <div class="kpi"><div class="kpi-label">Active Items</div><div class="kpi-value" id="kI">201</div><div class="kpi-sub" id="kId"></div></div>
+      <div class="kpi"><div class="kpi-label">Grams Sold</div><div class="kpi-value" id="kG">2329.0kg</div><div class="kpi-sub" id="kGd"></div></div>
+    </div>
+    <div class="chart-area">
+      <div class="chart-card">
+        <div class="chart-hd">
+          <span class="chart-title" id="cTitle">AUR (Avg Unit Retail $) over Time — with Historical Overlay</span>
+          <span class="chart-meta" id="cMeta">Weekly · by Brand</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="mc" style="box-sizing: border-box; display: block; height: 605px; width: 1562px;" width="1562" height="605"></canvas>
+          <div id="pinCard" style="display:none;position:absolute;background:#fff;border:1px solid #e4e7ed;border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,.14);padding:11px 14px;min-width:175px;max-width:255px;z-index:200;pointer-events:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:6px;">
+              <span id="pinLabel" style="font-family:'Syne','Trebuchet MS','Arial Black',Impact,sans-serif;font-size:11px;font-weight:700;color:#0d1117;flex:1;line-height:1.3;"></span>
+              <button onclick="document.getElementById('pinCard').style.display='none'" style="border:none;background:none;cursor:pointer;color:#9ca3af;font-size:15px;line-height:1;padding:0;flex-shrink:0;">×</button>
+            </div>
+            <div id="pinBody" style="font-size:11px;color:#3a3f4b;line-height:1.9;font-family:'DM Mono','Courier New',Courier,monospace;"></div>
+          </div>
+          <div class="empty-state" id="empty" style="display:none">No data for current filters</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast">✓ Downloaded! Drop the file on netlify.com/drop and share the link.</div>
+<script>
+
+
+
+
+
+// ── Embedded historical baseline ──────────────────────────────────────
+const HIST_BD=[];
+const HIST_SD=[];
+const HIST_SM=[];
+let HIST_BRANDS=["-","14er","303 Cannabis","710 Labs","AO Extracts","Airgraft","AiroPro","Aliviar","Ardo","Arsty","Artsy","Atomic","Batch","Be One Kind","Billo","Binske","Bloom County","Blue Earth","Bonanza","Bonsai","Bosky","Boulder Built","Broadway","CAM","Cali Blaze","Candaze","Canna Club","CannaPunch","Captain","Care Division","Cheeba Chews","Cherry","Chronic Therapy","Clarity Gardens","Clearwater","Coda","Coda Signature","Colorado Vape","Connoisseur Shelf","Cookies","Craft","DOSD","Dablogic","Dadirri","Dandy Dimes","Del Mundo","Denver Dab Co","Dialed In","Divine","Doinks","Double Brow","Drool","EDW","Edun","Egozi","Eureka","Evergreen","Exotic Cropz","Fat Grams","Flora Co","Floraco","Flyin Hawaiian","Fox Cannabis","Freez-Its","Full Melt","Glacier Extracts","Good Chemistry","Good Tide","Good Trees","Grasshopper Farms","Grateful Grove","Green Apple Acres","Green Dot","Green Dot Labs","Green Dragon","Green Dragon (CO)","Green Pharms","Green Source","HAZE","Harmony","Harmony Extracts","Haze","Haze Silver","Herbal Garden","Hi-Fuel","Hi-Low","High Canyon","High Country Healing","High Grade","High Ryse","Honey Bud","House","IION","Incredibles","Indico","Jack Herer","Jetty","Journeyman","Joyibles","Juicy","Kaviar","Kaya","Keef Cola","Koala","Kush Masters","L'eagle","Lazercat","Leiffa","Level 10","Lit","Litties","LivWell","Livwell","Locol Love","Loud Craft Cannabis","Love's Oven","Lowell Farms","Loyalty Farms","MIle HIgh Suckers","Magik City","Magnitude","Major Beverage","Malek's","Mammoth Farms","Matter.","Melody Genetics","Meraki","Mezz","Mighty Melts","Mile High Dabs","Mountian High Suckers","Muncheez","My Brother's Flower","NFuzed","NOBO","Natty Rems","Newt Brothers","Next 1 Labs","Next1","Nfuzed","Nifty","Nine Extracts","Noot","Northern Standard","Nove","NuHi","Nuo","O.Pen","O.pen","OG Mixtapes","Oil","Olio","One Eleven","Oni","P3","PAX","PAX (CO)","PC Nursery","Packwoods","Panama Gold","Pearl","Petrol","PotCo","Prime Farms","Psycho Somatic","Purplebee's","Pyramid","Rad Rox","Rare Dankness","Rebel Edibles","Redwood","Retro","Ripple","Rivers (RVRS)","Roasted","Robhots","Sacco","Sano Gardens","Sauce","Seed & Smith","Seed and Strain","Sensi Shop","Shift","Silber Lake","Silver Lake","Sixty-Six","SkyIsLimit","Sloth","Smokiez","Sofa King Medicinal","Soiku Bano","Solstice","Somatic","Spherex","Stratos","Summit","Sun House","Sunhouse","Sunshine","Sunshine Extracts","Sweetwater","TS Labs","TasteBudz","The Clear","The Flower Collective","The Frost Collective","The Great Ascent","The Greenery Hash Factory","The Myx","Three Rivers","Tical","Trinidad Cultivation","Vera","Viola","WYLD","Wana","Wana Seasonal","Wavelength","West Edison","Western Skies","Westpine","White Meadows","White Moose","White Mousse","Wyld","X-Vape","Yetibles","York St"];
+let HIST_LOCS=["EDW - Aurora","EDW - Brighton","EDW - Central Boulder","EDW - Commerce City","EDW - DU (Dispensary)","EDW - Federal Heights","EDW - NW Denver/Pecos","EF - South Boulder","Green Dragon - 6th Ave (Aurora)","Green Dragon - Capitol Hill (Grant)","Green Dragon - Central Denver (Byers Place)","Green Dragon - Colfax (East Denver)","Green Dragon - Edgewater","Green Dragon - Fort Collins","Green Dragon - Fort Collins - College Ave","Green Dragon - Quincy (Aurora)","Green Dragon - Sheridan (West Denver)","LW - Berthoud","LW - Broomfield","LW - Buckley","LW - Central Park","LW - Colorado Blvd","LW - Cortez","LW - DTC","LW - Federal Heights","LW - Fort Collins","LW - Garden City","LW - Lakewood","LW - Log Lane","LW - Peoria","LW - Pueblo North","LW - RiNo","LW - Tower Road","LW - Uptown","SA - Denver","SB - Arapahoe","SB - Belmar","SB - Boulder","SB - Colorado Springs","SB - Fort Collins","SB - Garden City","SB - Glendale","SB - Highlands","SB - Lakeside","SB - Longmont","SB - Louisville","SB - Manitou Springs","SB - Niwot","SB - North Denver","SB - Pueblo","SB - Pueblo West"];
+let HIST_CATS=["Airgraft","Applicators (Syringe)","Beverages","Blunts","Cartridges","Chocolates","Classic Shelf","Confections","Connoisseur Shelf","Craft Shelf","Desserts - Baked Goods","Diamonds","Disposables","Elite Shelf","Every Day Weed Flower","GD - Pre-Pack Flower","Gummies","Infused Flower","Infused Pre-Rolls","LW MED - Bronze","LW MED - LivWell","LW MED - Plat","Live Resin","Live Resin Cartridges","Live Resin Pods","MED - Pre-Pack Flower","OZ Special","Pods","Pre-Pack Flower","Pre-Rolled","Premier Shelf","Reserve Shelf","SA - $110 OZ Shelf - Elite Shelf","SA - $130 OZ Shelf - Connoisseur Shelf","SA - $50 Oz Shelf - Oz Special","SA - $65 Oz Shelf - Select Shelf","SA - $85 Oz Shelf - Premier Shelf","Select Shelf","Shake Shelf","Shatter","Solventless","Solventless Cartridges","Solventless Disposables","Tablets","Tinctures","Value Shelf","Wax"];
+const HIST_DMIN='2025-10-27';
+const HIST_DMAX='2026-04-27';
+
+// Pre-computed badge lookup maps
+var _bB={},_bC={},_bCG={};
+function rebuildBadges(){
+  _bB={}; _bC={}; _bCG={};
+  liveBrand.forEach(function(s){
+    _bB[s.Brand]=(_bB[s.Brand]||0)+s.Units;
+    _bC[s.Classification]=(_bC[s.Classification]||0)+s.Units;
+    var cg=typeof CLS_TO_CAT!=='undefined'?CLS_TO_CAT[s.Classification]:null;
+    if(cg)_bCG[cg]=(_bCG[cg]||0)+s.Units;
+  });
+}
+const HIST_BRAND=HIST_BD.map(r=>({Date:r.W,Week:r.W,Brand:r.B,Classification:r.C,Location:r.L,Units:r.U,Sales:r.S,Profit:r.PR,Grams:r.G||0}));
+const HIST_SKU=[];
+const HIST_MASTER=HIST_SM.map(r=>({Brand:r.B,SKU:r.K,Product:r.P,Classification:r.C,Units:r.U,Sales:r.S,Margin:r.M||0,Grams:r.G||0,UnitType:r.UT||'Each',NetWeightPer:r.NW||0}));
+
+// ── Live data (starts as historical, replaced on upload) ───────────────
+
+// ── Embedded live data (baked in at export) ──────────────────────────
+const LIVE_BD=[];
+const LIVE_SK=[];
+const _LIVE_BRAND=LIVE_BD.map(r=>({Date:r.W,Week:r.W,Brand:r.B,Classification:r.C,Location:r.L,Units:r.U,Sales:r.S,Profit:r.PR,Grams:r.G||0}));
+const _LIVE_SKU=LIVE_SK.map(r=>({Date:r.W,Week:r.W,Brand:r.B,SKU:r.K,Product:r.P,Classification:r.C,Location:r.L,Units:r.U,Sales:r.S,Profit:r.PR,Grams:r.G||0,UnitType:r.UT||'Each',NetWeightPer:r.NW||0}));
+const _LIVE_MR={};_LIVE_BRAND.forEach(r=>{const k=r.Brand+r.Classification;if(!_LIVE_MR[k])_LIVE_MR[k]={Brand:r.Brand,SKU:r.Brand,Product:r.Brand,Classification:r.Classification,Units:0,Sales:0};_LIVE_MR[k].Units+=r.Units;_LIVE_MR[k].Sales+=r.Sales;});
+let liveBrand=[..._LIVE_BRAND],liveSKU=[..._LIVE_SKU],liveMaster=Object.values(_LIVE_MR).sort((a,b)=>b.Units-a.Units);
+let ALL_BRANDS=[...new Set(_LIVE_BRAND.map(r=>r.Brand))].sort();
+let ALL_LOCS=[...new Set(_LIVE_BRAND.map(r=>r.Location).filter(Boolean))].sort();
+let ALL_CATS=[...new Set(_LIVE_BRAND.map(r=>r.Classification).filter(Boolean))].sort();
+const CLS_TO_CAT={"Airgraft":"Vapes","Apparel":"Accessories","Applicators (Syringe)":"Concentrates","Balms - Salves":"Topicals","Bath":"Accessories","Batteries":"Accessories","Beverages":"Edibles","Blunts":"Pre-Rolls","Cartridges":"Vapes","Chocolates":"Edibles","Confections":"Edibles","Connoisseur Shelf":"Flower","Dab Tools - Dab Accessories":"Accessories","Desserts - Baked Goods":"Edibles","Devices":"Accessories","Diamonds":"Concentrates","Disposables":"Vapes","Elite Shelf":"Flower","Fees":"Misc","General Merchandise":"Accessories","Glassware":"Accessories","Gummies":"Edibles","Infused Flower":"Concentrates","Infused Pre-Rolls":"Pre-Rolls","Integrated Gift Card":"Misc","Live Resin":"Concentrates","Live Resin Cartridges":"Vapes","Live Resin Pods":"Vapes","Lotions":"Topicals","MED - Pre-Pack Flower":"Flower","OZ Special":"Flower","Pods":"Vapes","Premier Shelf":"Flower","Pre-Rolled":"Pre-Rolls","Rolling Supplies":"Accessories","Rounding":"Misc","SA - $110 OZ Shelf":"Flower","SA - $130 OZ Shelf":"Flower","SA - $40 OZ Shelf":"Flower","SA - $50 Oz Shelf":"Flower","SA - $55 OZ Shelf":"Flower","SA - $60 OZ Shelf":"Flower","SA - $65 Oz Shelf":"Flower","SA - $70 Oz Shelf":"Flower","SA - $80 Oz Shelf":"Flower","SA - $85 Oz Shelf":"Flower","SA - $90 Oz Shelf":"Flower","SA - $95 Oz Shelf":"Flower","SA - Green Dot Black Label Shelf":"Flower","SA - Shake Shelf":"Flower","Select Shelf":"Flower","Shake Shelf":"Flower","Shatter":"Concentrates","Smoking Accessories":"Accessories","Solventless":"Concentrates","Solventless Cartridges":"Vapes","Solventless Disposables":"Vapes","Solventless Pods":"Vapes","Sunkissed Shelf":"Flower","Tablets":"Edibles","Tinctures":"Edibles","Transdermals":"Topicals","Wax":"Concentrates","Classic Shelf":"Flower","Craft Shelf":"Flower","Every Day Weed Flower":"Flower","GD - Pre-Pack Flower":"Flower","LW MED - Bronze":"Flower","LW MED - LivWell":"Flower","LW MED - Plat":"Flower","Pre-Pack Flower":"Flower","Reserve Shelf":"Flower","SA - $110 OZ Shelf - Elite Shelf":"Flower","SA - $130 OZ Shelf - Connoisseur Shelf":"Flower","SA - $50 Oz Shelf - Oz Special":"Flower","SA - $65 Oz Shelf - Select Shelf":"Flower","SA - $85 Oz Shelf - Premier Shelf":"Flower"};
+const ALL_CAT_GROUPS=["Accessories", "Concentrates", "Edibles", "Flower", "Misc", "Pre-Rolls", "Topicals", "Vapes"];
+const GRAM_CLS=new Set(["Blunts", "Classic Shelf", "Connoisseur Shelf", "Craft Shelf", "Elite Shelf", "Every Day Weed Flower", "GD - Pre-Pack Flower", "Infused Pre-Rolls", "MED - Pre-Pack Flower", "OZ Special", "Pre-Pack Flower", "Pre-Rolled", "Premier Shelf", "Reserve Shelf", "SA - $110 OZ Shelf", "SA - $130 OZ Shelf", "SA - $40 OZ Shelf", "SA - $50 Oz Shelf", "SA - $55 OZ Shelf", "SA - $60 OZ Shelf", "SA - $65 Oz Shelf", "SA - $70 OZ Shelf", "SA - $80 OZ Shelf", "SA - $85 Oz Shelf", "SA - $90 OZ Shelf", "SA - $95 OZ Shelf", "SA - Green Dot Black Label Shelf", "SA - Shake Shelf", "Select Shelf", "Shake Shelf", "Sunkissed Shelf"]);
+let selCG=new Set(ALL_CAT_GROUPS);
+let hasUpload=true, showHist=false;
+
+const PAL=['#1a56db','#0b7a4e','#c81e1e','#7e3af2','#d97706','#0e9f6e','#1c64f2','#9b1c1c','#03543f','#c05621','#5521b5','#014451','#723b13','#1e429f','#771d1d','#6b21a8','#064e3b','#7c3aed','#065f46','#1d4ed8','#b45309','#047857','#4f46e5','#0369a1','#15803d','#b91c1c','#0891b2','#16a34a'];
+const pal=i=>PAL[i%PAL.length];
+
+let dim='brand',ct='aur',chart=null,_dt=null;
+function debouncedUpdate(){clearTimeout(_dt);_dt=setTimeout(update,120);}
+let selB=new Set(ALL_BRANDS),selK=new Set(liveMaster.map(s=>s.SKU));
+let selC=new Set(ALL_CATS),selL=new Set(ALL_LOCS);
+rebuildBadges();
+document.getElementById('histToggleWrap').classList.add('visible');
+document.getElementById('dFrom').value='2026-03-30';
+document.getElementById('dTo').value='2026-05-25';
+
+// ── Toast ──────────────────────────────────────────────────────────────
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3500);}
+
+// ── Historical overlay toggle ──────────────────────────────────────────
+function toggleHist(){
+  showHist=!showHist;
+  document.getElementById('histToggle').classList.toggle('on',showHist);
+  update();
+}
+
+// ── CSV parsing ────────────────────────────────────────────────────────
+function parseCSVLine(line){
+  const res=[];let cur='',inQ=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+    else if(ch===','&&!inQ){res.push(cur);cur='';}
+    else cur+=ch;
+  }
+  res.push(cur);return res;
+}
+
+function parseCSVRobust(text){
+  text=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  const lines=text.split('\n');
+  if(lines.length<2) throw new Error('File appears empty');
+  let headerIdx=0;
+  for(let i=0;i<Math.min(25,lines.length);i++){
+    const cols=parseCSVLine(lines[i]);
+    const colSet=new Set(cols.map(function(x){return x.trim();}));
+    if(colSet.has('Product')&&colSet.has('Brand')&&colSet.has('Date')){headerIdx=i;break;}
+  }
+  var hdrs=parseCSVLine(lines[headerIdx]).map(function(h){return h.trim();});
+  if(!hdrs.includes('Brand')&&!hdrs.includes('Product'))
+    throw new Error('Cannot find Brand or Product column. Found: '+hdrs.slice(0,8).join(', '));
+  var rows=[];
+  for(let i=headerIdx+1;i<lines.length;i++){
+    var ln=lines[i].trim();if(!ln)continue;
+    var vals=parseCSVLine(ln);if(vals.length<5)continue;
+    var obj={};hdrs.forEach(function(h,j){obj[h]=(vals[j]||'').trim();});rows.push(obj);
+  }
+  return rows;
+}
+
+function cleanNum(v){return parseFloat(String(v||0).replace(/[$,%]/g,'').trim())||0;}
+
+function parseDate(s){
+  if(!s)return '';s=s.trim();
+  if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
+  const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m)return m[3]+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0');
+  return s.slice(0,10);
+}
+
+function toWeek(dateStr){
+  const d=new Date(dateStr+'T00:00:00');
+  const day=d.getDay();const diff=d.getDate()-day+(day===0?-6:1);
+  return new Date(d.setDate(diff)).toISOString().slice(0,10);
+}
+
+function loadCSV(evt){
+  const file=evt.target.files[0];if(!file)return;
+  document.getElementById('upStatus').textContent='Parsing...';
+  const r=new FileReader();
+  r.onload=e=>{
+    try{processCSV(e.target.result,file.name);}
+    catch(err){document.getElementById('upStatus').textContent='Error: '+err.message;toast('CSV error: '+err.message);console.error(err);}
+  };
+  r.readAsText(file,'latin-1');
+}
+
+function processCSV(text,fname){
+  const rows=parseCSVRobust(text);
+  const clean=rows.filter(r=>{
+    const prod=(r['Product']||'');const brand=(r['Brand']||'');
+    return !prod.includes('MED')&&!brand.toLowerCase().includes('employee sample')&&!!brand;
+  });
+  if(!clean.length)throw new Error('No valid rows after filtering');
+  const bMap={},sMap={};
+  clean.forEach(r=>{
+    const date=parseDate(r['Date']||'');if(!date)return;
+    const week=toWeek(date);
+    const brand=(r['Brand']||'').trim();const sku=(r['SKU']||'').trim();
+    const prod=(r['Product']||'').trim().slice(0,45);
+    const cls=(r['Classification']||'').trim();const loc=(r['Location']||'').trim();
+    const units=parseFloat(r['Items Sold']||0)||0;
+    const sales=cleanNum(r['Gross Sales']||0);const profit=cleanNum(r['Gross Profit']||0);
+    if(!brand||units===0)return;
+    const bk=date+'|'+brand+'|'+cls+'|'+loc;
+    if(!bMap[bk])bMap[bk]={Date:date,Week:week,Brand:brand,Classification:cls,Location:loc,Units:0,Sales:0,Profit:0,Grams:0};
+    bMap[bk].Units+=units;bMap[bk].Sales+=sales;bMap[bk].Profit+=profit;bMap[bk].Grams+=(GRAM_CLS.has(cls)?cleanNum(r['Total Net Weight']||0):0);
+    const sk=date+'|'+(sku||brand+'_'+prod.slice(0,20));
+    if(!sMap[sk])sMap[sk]={Date:date,Week:week,Brand:brand,SKU:sku||prod,Product:prod,Classification:cls,Location:loc,Units:0,Sales:0,Profit:0,Grams:0,UnitType:(r['Unit Type']||'Each').trim(),NetWeightPer:cleanNum(r['Net Weight']||0)};
+    sMap[sk].Units+=units;sMap[sk].Sales+=sales;sMap[sk].Profit+=profit;sMap[sk].Grams+=(GRAM_CLS.has(cls)?cleanNum(r['Total Net Weight']||0):0);
+  });
+  liveBrand=Object.values(bMap);liveSKU=Object.values(sMap);
+  if(!liveBrand.length)throw new Error('Aggregation produced zero rows');
+  ALL_BRANDS=[...new Set(liveBrand.map(r=>r.Brand))].sort();
+  ALL_CATS=[...new Set(liveBrand.map(r=>r.Classification).filter(Boolean))].sort();
+  ALL_LOCS=[...new Set(liveBrand.map(r=>r.Location).filter(Boolean))].sort();
+  // Rebuild category groups from new data
+  const newCGs=[...new Set(ALL_CATS.map(cl=>CLS_TO_CAT[cl]).filter(Boolean))].sort();
+  newCGs.forEach(g=>{if(!ALL_CAT_GROUPS.includes(g))ALL_CAT_GROUPS.push(g);});
+  ALL_CAT_GROUPS.sort();
+  selCG=new Set(ALL_CAT_GROUPS);
+  const mMap={};
+  liveSKU.forEach(r=>{const k=r.SKU+'|'+r.Brand;if(!mMap[k])mMap[k]={Brand:r.Brand,SKU:r.SKU,Product:r.Product,Classification:r.Classification,Units:0,Sales:0};mMap[k].Units+=r.Units;mMap[k].Sales+=r.Sales;});
+  liveMaster=Object.values(mMap).sort((a,b)=>b.Units-a.Units);
+  selB=new Set(ALL_BRANDS);selC=new Set(ALL_CATS);selL=new Set(ALL_LOCS);selK=new Set(liveMaster.map(s=>s.SKU));
+  rebuildBadges();
+  const dates=liveBrand.map(r=>r.Date).sort();
+  document.getElementById('dFrom').value=dates[0];
+  document.getElementById('dTo').value=dates[dates.length-1];
+  document.getElementById('bTag').textContent=fname+' \u00b7 '+liveBrand.length.toLocaleString()+' records';
+  hasUpload=true;showHist=false;
+  document.getElementById('histToggleWrap').classList.add('visible');
+  document.getElementById('histToggle').classList.remove('on');
+  const msg='Loaded '+clean.length.toLocaleString()+' rows \u00b7 '+ALL_BRANDS.length+' brands \u00b7 '+ALL_LOCS.length+' stores';
+  document.getElementById('upStatus').textContent=msg;toast(msg);
+  setDim('brand');update();
+  document.getElementById('exportBtn').style.display='inline-block';
+}
+
+// ── Sidebar ────────────────────────────────────────────────────────────
+function setDim(d){
+  dim=d;
+  ['brand','sku','catgrp','cat','store'].forEach(x=>{
+    const el=document.getElementById('ft'+x.charAt(0).toUpperCase()+x.slice(1));
+    if(el)el.classList.toggle('on',x===d);
+  });
+  document.getElementById('sbTitle').textContent={brand:'BRAND FILTER',sku:'SKU FILTER',catgrp:'CATEGORY FILTER',cat:'SUB-CATEGORY FILTER',store:'STORE FILTER'}[d]||'FILTER';
+  document.getElementById('srch').value='';
+  if(d==='sku'&&!_skuLoaded&&typeof loadSkuData==='function'){loadSkuData();}
+  renderSB();
+}
+
+function getItems(q){
+  if(dim==='brand')return ALL_BRANDS.filter(function(b){return !q||b.toLowerCase().includes(q);}).map(function(b){return{id:b,lbl:b,badge:(_bB[b]||0).toLocaleString(),chk:selB.has(b)};});
+  if(dim==='sku')return liveMaster.filter(function(s){return !q||s.Product.toLowerCase().includes(q)||s.Brand.toLowerCase().includes(q)||(s.SKU||'').toLowerCase().includes(q);}).map(function(s){return{id:s.SKU,lbl:s.Brand+': '+s.Product,badge:s.Units.toLocaleString(),chk:selK.has(s.SKU)};});
+  if(dim==='catgrp')return(typeof ALL_CAT_GROUPS!=='undefined'?ALL_CAT_GROUPS:[]).filter(function(g){return !q||g.toLowerCase().includes(q);}).map(function(g){return{id:g,lbl:g,badge:(_bCG[g]||0).toLocaleString(),chk:typeof selCG!=='undefined'&&selCG.has(g)};});
+  if(dim==='cat')return ALL_CATS.filter(function(cv){return !q||cv.toLowerCase().includes(q);}).map(function(cv){return{id:cv,lbl:cv,badge:(_bC[cv]||0).toLocaleString(),chk:selC.has(cv)};});
+  if(dim==='store')return ALL_LOCS.filter(function(l){return !q||l.toLowerCase().includes(q);}).map(function(l){return{id:l,lbl:l,badge:'',chk:selL.has(l)};});
+  return[];
+}
+
+function selAll(v){
+  const q=document.getElementById('srch').value.toLowerCase();
+  const s={brand:selB,sku:selK,catgrp:selCG,cat:selC,store:selL}[dim];
+  if(s)getItems(q).forEach(item=>v?s.add(item.id):s.delete(item.id));
+  renderSB();
+  if(dim==='sku'){scheduleSkuSeries();}else{update();}
+}
+
+function tog(id){
+  const s={brand:selB,sku:selK,catgrp:selCG,cat:selC,store:selL}[dim];
+  if(s){s.has(id)?s.delete(id):s.add(id);}
+  renderSB();
+  if(dim==='sku'){scheduleSkuSeries();}else{update();}
+}
+
+function renderSB(){
+  const q=document.getElementById('srch').value.toLowerCase();
+  const fl=document.getElementById('fList');
+  fl.innerHTML=getItems(q).map((item,idx)=>{
+    const chk=item.chk?'checked':'';
+    const lbl=item.lbl.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    return '<div class="fi" data-idx="'+idx+'" onclick="togIdx(this)">'+
+      '<input type="checkbox" '+chk+' onclick="event.stopPropagation();togIdx(this.parentNode)">'+
+      '<span class="fi-label" title="'+lbl+'">'+lbl+'</span>'+
+      (item.badge?'<span class="fi-badge">'+item.badge+'</span>':'')+
+      '</div>';
+  }).join('');
+  fl._items=getItems(q);
+}
+function togIdx(el){
+  const idx=parseInt(el.getAttribute('data-idx'));
+  const item=document.getElementById('fList')._items[idx];
+  if(item)tog(item.id);
+}
+
+// ── Chart type ─────────────────────────────────────────────────────────
+const CPMAP={aur:'cpAUR',units:'cpUnits',daily:'cpDaily',r7:'cpR7',overlay:'cpOverlay',margin:'cpMargin',revAUR:'cpRevAUR',marAUR:'cpMarAUR',bubble:'cpBubble',unitsRev:'cpUnitsRev',grams:'cpGrams'};
+function setC(t){ct=t;document.querySelectorAll('.cpill').forEach(el=>el.classList.remove('on'));document.getElementById(CPMAP[t])?.classList.add('on');update();}
+
+// ── Data helpers ───────────────────────────────────────────────────────
+function filterData(srcBrand,srcSKU){
+  var from=document.getElementById('dFrom').value;
+  var to=document.getElementById('dTo').value;
+  var src=dim==='sku'?srcSKU:srcBrand;
+  var isSkuDim=dim==='sku';
+  var result=[];
+  for(var i=0;i<src.length;i++){
+    var r=src[i];
+    if(r.Date<from||r.Date>to) continue;
+    if(!selB.has(r.Brand)) continue;
+    if(r.Classification&&!selC.has(r.Classification)) continue;
+    if(r.Classification&&typeof CLS_TO_CAT!=='undefined'&&typeof selCG!=='undefined'){var cg=CLS_TO_CAT[r.Classification];if(cg&&!selCG.has(cg))continue;}
+    if(r.Location&&!selL.has(r.Location)) continue;
+    if(isSkuDim&&!selK.has(r.SKU)) continue;
+    result.push(r);
+  }
+  return result;
+}
+
+// Filter historical data using same brand/cat/loc selections but no date constraint
+// so it always shows the full historical range as underlay
+function filterHist(){
+  var src=dim==='sku'?HIST_SKU:HIST_BRAND;
+  var isSkuDim=dim==='sku';
+  var result=[];
+  for(var i=0;i<src.length;i++){
+    var r=src[i];
+    if(!selB.has(r.Brand)) continue;
+    if(r.Classification&&!selC.has(r.Classification)) continue;
+    if(r.Classification&&typeof CLS_TO_CAT!=='undefined'&&typeof selCG!=='undefined'){var cg=CLS_TO_CAT[r.Classification];if(cg&&!selCG.has(cg))continue;}
+    if(r.Location&&!selL.has(r.Location)) continue;
+    if(isSkuDim&&!selK.has(r.SKU)) continue;
+    result.push(r);
+  }
+  return result;
+}
+
+function eKey(r){return dim==='sku'?r.SKU:r.Brand;}
+function eLabel(r){return dim==='sku'?(r.Brand+': '+r.Product):r.Brand;}
+function pk(r,g){return g==='month'?(r.Week||r.Date).slice(0,7):r.Week||r.Date;}
+
+var _fc={};
+function fillDates(from,to,g){
+  var ck=from+'|'+to+'|'+g;if(_fc[ck])return _fc[ck];
+  const out=[];const d=new Date(from+'T00:00:00');const end=new Date(to+'T00:00:00');
+  while(d<=end){
+    const iso=d.toISOString().slice(0,10);
+    if(g==='day'){out.push(iso);d.setDate(d.getDate()+1);}
+    else if(g==='week'){
+      const day=d.getDay();const mon=new Date(d);mon.setDate(d.getDate()-day+(day===0?-6:1));
+      const monStr=mon.toISOString().slice(0,10);
+      if(!out.length||out[out.length-1]!==monStr)out.push(monStr);
+      d.setDate(d.getDate()+7);
+    }else{
+      const mo=iso.slice(0,7);if(!out.length||out[out.length-1]!==mo)out.push(mo);
+      d.setDate(d.getDate()+32);d.setDate(1);
+    }
+  }
+  _fc[ck]=out;
+  return out;
+}
+
+function buildGrid(data,g,from,to){
+  var agg={},lbl={};
+  for(var i=0;i<data.length;i++){
+    var r=data[i],p=pk(r,g),k=eKey(r);
+    if(!lbl[k])lbl[k]=eLabel(r);
+    if(!agg[k])agg[k]={};
+    if(!agg[k][p])agg[k][p]={u:0,s:0,p:0,g:0};
+    var pp=agg[k][p];
+    pp.u+=r.Units;pp.s+=r.Sales;pp.p+=r.Profit;pp.g+=(r.Grams||0);
+  }
+  var f=from||document.getElementById('dFrom').value;
+  var t=to||document.getElementById('dTo').value;
+  var periods=fillDates(f,t,g);
+  return{agg:agg,lbl:lbl,periods:periods,ents:Object.keys(agg)};
+}
+
+// ── KPIs ───────────────────────────────────────────────────────────────
+function updateKPIs(data,histData){
+  var U=0,S=0,P=0,G=0; var entSet=new Set();
+  for(var i=0;i<data.length;i++){var r=data[i];U+=r.Units;S+=r.Sales;P+=r.Profit;G+=(r.Grams||0);entSet.add(dim==='sku'?r.SKU:r.Brand);}
+  var fmt=function(n){return n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+(n/1e3).toFixed(0)+'K':'$'+n.toFixed(0);};
+  var fmtG=function(n){return n>=1000?(n/1000).toFixed(1)+'kg':n.toFixed(0)+'g';};
+  document.getElementById('kU').textContent=U>=1e3?(U/1e3).toFixed(0)+'K':U.toLocaleString();
+  document.getElementById('kS').textContent=fmt(S);
+  document.getElementById('kP').textContent=fmt(P);
+  document.getElementById('kM').textContent=S>0?(P/S*100).toFixed(1)+'%':'--';
+  document.getElementById('kA').textContent=U>0?'$'+(S/U).toFixed(2):'--';
+  document.getElementById('kI').textContent=entSet.size;
+  var kG=document.getElementById('kG');if(kG)kG.textContent=G>0?fmtG(G):'--';
+  if(histData&&showHist&&hasUpload){
+    var hU=0,hS=0,hP=0;
+    for(var j=0;j<histData.length;j++){hU+=histData[j].Units;hS+=histData[j].Sales;hP+=histData[j].Profit;}
+    var d=function(v,hv){if(!hv)return '';return(v>=hv?'+':'')+((v-hv)/Math.abs(hv)*100).toFixed(1)+'% vs hist';};
+    ['kUd','kSd','kPd','kMd','kAd','kId','kGd'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='';});
+    var el;
+    el=document.getElementById('kUd');if(el)el.textContent=d(U,hU);
+    el=document.getElementById('kSd');if(el)el.textContent=d(S,hS);
+    el=document.getElementById('kPd');if(el)el.textContent=d(P,hP);
+    el=document.getElementById('kMd');if(el)el.textContent=S>0&&hS>0?((P/S-hP/hS)*100).toFixed(1)+'pp vs hist':'';
+    el=document.getElementById('kAd');if(el&&U>0&&hU>0)el.textContent=((S/U-hS/hU)>=0?'+':'')+'$'+((S/U)-(hS/hU)).toFixed(2)+' vs hist';
+  }else{
+    ['kUd','kSd','kPd','kMd','kAd','kId','kGd'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='';});
+  }
+}
+
+function roll7(arr){return arr.map((_,i)=>{const w=arr.slice(Math.max(0,i-6),i+1).filter(v=>v!==null);return w.length?+(w.reduce((a,b)=>a+b,0)/w.length).toFixed(2):null;});}
+
+// ── Main update ────────────────────────────────────────────────────────
+function update(){
+  // SKU mode on historical data is unavailable (dropped for performance).
+  // Users must upload a CSV to use SKU-level analysis.
+  if(dim==='sku'&&!hasUpload){
+    document.getElementById('cTitle').textContent='SKU Mode — Upload a CSV to view SKU-level data';
+    document.getElementById('cMeta').textContent='Historical baseline is brand-level only (weekly). Upload a new CSV export to enable SKU analysis.';
+    document.getElementById('empty').style.display='none';
+    if(chart){chart.destroy();chart=null;}
+    // Still update KPIs from brand data
+    var brandData=filterData(liveBrand,[]);
+    updateKPIs(brandData,null);
+    return;
+  }
+  const data=filterData(liveBrand,liveSKU);
+  const histData=showHist&&hasUpload?filterHist():null;
+  updateKPIs(data,histData);
+  const empty=!data.length;
+  document.getElementById('empty').style.display=empty?'flex':'none';
+  if(empty){if(chart){chart.destroy();chart=null;}return;}
+  const g=document.getElementById('gran').value;
+  if(ct==='aur')renderLine(data,histData,g,'aur');
+  else if(ct==='units')renderLine(data,histData,g,'units');
+  else if(ct==='daily')renderLine(data,histData,'day','units');
+  else if(ct==='r7')renderRoll7(data,histData);
+  else if(ct==='overlay')renderOverlay(data,histData,g);
+  else if(ct==='margin')renderLine(data,histData,g,'margin');
+  else if(ct==='revAUR')renderScatter(data,histData,true);
+  else if(ct==='marAUR')renderScatter(data,histData,false);
+  else if(ct==='bubble')renderBubble(data,histData);
+  else if(ct==='unitsRev')renderUnitsRev(data,histData);
+  else if(ct==='grams')renderGrams(data,histData,g);
+}
+
+function mkChart(type,labels,datasets,opts){
+  const ctx=document.getElementById('mc').getContext('2d');
+  if(chart)chart.destroy();
+  chart=new Chart(ctx,{type,data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:datasets.length<=20,position:'top',labels:{boxWidth:10,font:{size:10},padding:6}}},
+    scales:{x:{ticks:{font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:26}},y:{ticks:{font:{size:10}}}},
+    interaction:{mode:'index',intersect:false},...(opts||{})}});
+}
+
+// Build historical overlay datasets — dashed, semi-transparent, same color
+function histDatasets(histData,g,metric){
+  if(!histData||!histData.length)return[];
+  // Use full historical date range for historical grid
+  const{agg,lbl,periods,ents}=buildGrid(histData,g,HIST_DMIN,HIST_DMAX);
+  return ents.map((k,i)=>({
+    label:lbl[k]+' (hist)',
+    data:periods.map(p=>{const v=agg[k]?.[p];if(!v||!v.u)return null;
+      return metric==='aur'?+(v.s/v.u).toFixed(2):metric==='margin'?+(v.p/v.s*100).toFixed(2):v.u;}),
+    borderColor:pal(i)+'99',
+    backgroundColor:'transparent',
+    borderDash:[5,4],
+    borderWidth:1.5,
+    tension:.3,
+    pointRadius:0,
+    pointHoverRadius:4,
+    spanGaps:false,
+    order:10
+  }));
+}
+
+function renderLine(data,histData,g,metric){
+  const names={aur:'AUR (Avg Unit Retail $)',units:'Units Sold',margin:'Gross Margin %'};
+  const gn={day:'Daily',week:'Weekly',month:'Monthly'};
+  document.getElementById('cTitle').textContent=names[metric]+' over Time'+(showHist&&hasUpload?' \u2014 with Historical Overlay':'');
+  document.getElementById('cMeta').textContent=(gn[g]||'')+' \u00b7 by '+(dim==='sku'?'SKU':'Brand');
+  const{agg,lbl,periods,ents}=buildGrid(data,g);
+  // Current data datasets (solid)
+  const currentDS=ents.map((k,i)=>({
+    label:lbl[k],
+    data:periods.map(p=>{const v=agg[k]?.[p];if(!v||!v.u)return null;
+      return metric==='aur'?+(v.s/v.u).toFixed(2):metric==='margin'?+(v.p/v.s*100).toFixed(2):v.u;}),
+    borderColor:pal(i),backgroundColor:pal(i)+'20',
+    tension:.3,pointRadius:g==='day'?1.5:3.5,pointHoverRadius:6,
+    spanGaps:false,borderWidth:2,order:1
+  }));
+  // Historical datasets (dashed underlay)
+  const hDS=histDatasets(histData,g,metric);
+  // Merge periods for x-axis when overlay active
+  let allPeriods=periods;
+  if(hDS.length){
+    const{periods:hp}=buildGrid(histData,g,HIST_DMIN,HIST_DMAX);
+    const pSet=new Set([...periods,...hp]);
+    allPeriods=[...pSet].sort();
+    // Re-map current data to full period array
+    currentDS.forEach(ds=>{
+      const ek=ents[currentDS.indexOf(ds)];
+      ds.data=allPeriods.map(p=>{const v=agg[ek]?.[p];if(!v||!v.u)return null;
+        return metric==='aur'?+(v.s/v.u).toFixed(2):metric==='margin'?+(v.p/v.s*100).toFixed(2):v.u;});
+    });
+    // Re-map historical data to full period array
+    const{agg:hagg,ents:hents}=buildGrid(histData,g,HIST_DMIN,HIST_DMAX);
+    hDS.forEach((ds,i)=>{
+      const ek=hents[i];
+      ds.data=allPeriods.map(p=>{const v=hagg[ek]?.[p];if(!v||!v.u)return null;
+        return metric==='aur'?+(v.s/v.u).toFixed(2):metric==='margin'?+(v.p/v.s*100).toFixed(2):v.u;});
+    });
+  }
+  const ycb=metric==='aur'?v=>'$'+v:metric==='margin'?v=>v+'%':v=>v.toLocaleString();
+  mkChart('line',allPeriods,[...currentDS,...hDS],{scales:{
+    x:{ticks:{font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:26}},
+    y:{ticks:{font:{size:10},callback:ycb}}}});
+}
+
+function renderRoll7(data,histData){
+  document.getElementById('cTitle').textContent='7-Day Rolling Average \u2014 Units Sold'+(showHist&&hasUpload?' \u2014 with Historical Overlay':'');
+  document.getElementById('cMeta').textContent='Trailing 7-day window \u00b7 daily grain';
+  const{agg,lbl,periods,ents}=buildGrid(data,'day');
+  const currentDS=ents.map((k,i)=>({
+    label:lbl[k],data:roll7(periods.map(p=>agg[k]?.[p]?.u||null)),
+    borderColor:pal(i),backgroundColor:pal(i)+'15',
+    tension:.45,pointRadius:0,pointHoverRadius:5,spanGaps:true,borderWidth:2.5,fill:false,order:1
+  }));
+  let allPeriods=periods,hDS=[];
+  if(histData&&histData.length){
+    const{agg:hagg,lbl:hlbl,periods:hp,ents:hents}=buildGrid(histData,'day',HIST_DMIN,HIST_DMAX);
+    const pSet=new Set([...periods,...hp]);
+    allPeriods=[...pSet].sort();
+    hDS=hents.map((k,i)=>({
+      label:(hlbl[k]||k)+' (hist)',
+      data:roll7(allPeriods.map(p=>hagg[k]?.[p]?.u||null)),
+      borderColor:pal(i)+'88',backgroundColor:'transparent',
+      borderDash:[5,4],tension:.45,pointRadius:0,pointHoverRadius:4,spanGaps:true,borderWidth:1.5,fill:false,order:10
+    }));
+    currentDS.forEach((ds,i)=>{
+      const ek=ents[i];
+      ds.data=roll7(allPeriods.map(p=>agg[ek]?.[p]?.u||null));
+    });
+  }
+  mkChart('line',allPeriods,[...currentDS,...hDS],{scales:{
+    x:{ticks:{font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:26}},
+    y:{ticks:{font:{size:10}}}}});
+}
+
+function renderOverlay(data,histData,g){
+  document.getElementById('cTitle').textContent='AUR Overlay \u2014 Units (bars) + Avg Unit Retail (line)'+(showHist&&hasUpload?' \u2014 with Historical':'');
+  document.getElementById('cMeta').textContent='Left = Units \u00b7 Right = AUR $';
+  const byP={},hByP={};
+  data.forEach(r=>{const p=pk(r,g);if(!byP[p])byP[p]={u:0,s:0};byP[p].u+=r.Units;byP[p].s+=r.Sales;});
+  if(histData)histData.forEach(r=>{const p=pk(r,g);if(!hByP[p])hByP[p]={u:0,s:0};hByP[p].u+=r.Units;hByP[p].s+=r.Sales;});
+  const from=document.getElementById('dFrom').value,to=document.getElementById('dTo').value;
+  let periods=fillDates(from,to,g);
+  if(histData&&histData.length){
+    const hp=fillDates(HIST_DMIN,HIST_DMAX,g);
+    const pSet=new Set([...periods,...hp]);periods=[...pSet].sort();
+  }
+  const datasets=[
+    {label:'Units',data:periods.map(p=>byP[p]?byP[p].u:0),type:'bar',backgroundColor:'#1a56db30',borderColor:'#1a56db',borderWidth:1,yAxisID:'yU',order:2},
+    {label:'AUR ($)',data:periods.map(p=>(byP[p]&&byP[p].u>0)?+(byP[p].s/byP[p].u).toFixed(2):null),type:'line',borderColor:'#c81e1e',backgroundColor:'#c81e1e18',tension:.3,pointRadius:3,pointHoverRadius:6,borderWidth:2.5,yAxisID:'yA',order:1,spanGaps:true}
+  ];
+  if(histData&&histData.length){
+    datasets.push({label:'Units (hist)',data:periods.map(p=>hByP[p]?hByP[p].u:0),type:'bar',backgroundColor:'#d9770630',borderColor:'#d97706',borderWidth:1,yAxisID:'yU',order:3});
+    datasets.push({label:'AUR $ (hist)',data:periods.map(p=>(hByP[p]&&hByP[p].u>0)?+(hByP[p].s/hByP[p].u).toFixed(2):null),type:'line',borderColor:'#d97706',backgroundColor:'transparent',borderDash:[5,4],tension:.3,pointRadius:0,pointHoverRadius:4,borderWidth:1.5,yAxisID:'yA',order:4,spanGaps:true});
+  }
+  mkChart('bar',periods,datasets,{scales:{
+    x:{ticks:{font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:26}},
+    yU:{type:'linear',position:'left',title:{display:true,text:'Units',font:{size:10}},ticks:{font:{size:10}},grid:{color:'#f0f0f0'}},
+    yA:{type:'linear',position:'right',title:{display:true,text:'AUR ($)',font:{size:10}},ticks:{font:{size:10},callback:v=>'$'+v},grid:{drawOnChartArea:false}}},interaction:{mode:'index',intersect:false}});
+}
+
+function renderScatter(data,histData,isRev){
+  document.getElementById('cTitle').textContent=isRev
+    ?'Scatter \u2014 Daily Revenue (Y) vs. Daily Avg Unit Retail (X)'
+    :'Scatter \u2014 Daily Margin $ (Y) vs. Daily Avg Unit Margin (X)';
+  document.getElementById('cMeta').textContent='Each dot = one brand-week'+(showHist&&hasUpload?' \u00b7 hollow = historical':'');
+  var byE={},hByE={},lbl={};
+  data.forEach(function(r){
+    if(!r.Units||!r.Sales)return;
+    var k=eKey(r);lbl[k]=eLabel(r);if(!byE[k])byE[k]=[];
+    byE[k].push({x:isRev?+(r.Sales/r.Units).toFixed(2):+(r.Profit/r.Units).toFixed(2),y:isRev?+r.Sales.toFixed(0):+r.Profit.toFixed(2),d:r.Date});
+  });
+  if(histData)histData.forEach(function(r){
+    if(!r.Units||!r.Sales)return;
+    var k=eKey(r);lbl[k]=lbl[k]||eLabel(r);if(!hByE[k])hByE[k]=[];
+    hByE[k].push({x:isRev?+(r.Sales/r.Units).toFixed(2):+(r.Profit/r.Units).toFixed(2),y:isRev?+r.Sales.toFixed(0):+r.Profit.toFixed(2),d:r.Date});
+  });
+  var ents=[...new Set([...Object.keys(byE),...Object.keys(hByE)])];
+  var datasets=[];
+  ents.forEach(function(k,i){
+    if(byE[k])datasets.push({label:lbl[k],data:byE[k],backgroundColor:pal(i)+'66',borderColor:pal(i),borderWidth:1,pointRadius:3,pointHoverRadius:6,order:1});
+    if(hByE[k])datasets.push({label:(lbl[k]||k)+' (hist)',data:hByE[k],backgroundColor:'transparent',borderColor:pal(i)+'99',borderWidth:1.5,pointRadius:2,pointHoverRadius:5,pointStyle:'circle',order:10});
+  });
+  var ctx=document.getElementById('mc').getContext('2d');
+  if(chart)chart.destroy();
+  chart=new Chart(ctx,{type:'scatter',data:{datasets:datasets},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:datasets.length<=20,position:'top',labels:{boxWidth:10,font:{size:10},padding:6}},
+      tooltip:{callbacks:{label:function(c){
+        var xLbl=isRev?'AUR $'+c.raw.x:'AUM $'+c.raw.x;
+        var yLbl=isRev?'Rev $'+c.raw.y.toLocaleString():'Margin $'+c.raw.y.toLocaleString();
+        return ' '+c.dataset.label+': '+xLbl+' \u00b7 '+yLbl+' ('+c.raw.d+')';
+      }}}},
+    scales:{
+      x:{title:{display:true,text:isRev?'Avg Unit Retail ($)':'Avg Unit Margin ($)',font:{size:11}},ticks:{font:{size:10},callback:function(v){return '$'+v;}}},
+      y:{title:{display:true,text:isRev?'Revenue ($)':'Gross Margin ($)',font:{size:11}},ticks:{font:{size:10},callback:function(v){return '$'+v.toLocaleString();}}}
+    }}});
+}
+
+
+function renderUnitsRev(data,histData){
+  document.getElementById('cTitle').textContent='Units vs. Revenue'+(showHist&&hasUpload?' \u2014 with Historical':'');
+  document.getElementById('cMeta').textContent='Click a dot to pin info'+(showHist&&hasUpload?' \u00b7 hollow = historical':'');
+  var agg={},hagg={},lbl={};
+  data.forEach(function(r){var k=eKey(r);lbl[k]=eLabel(r);if(!agg[k])agg[k]={u:0,s:0,p:0};agg[k].u+=r.Units;agg[k].s+=r.Sales;agg[k].p+=r.Profit;});
+  if(histData)histData.forEach(function(r){var k=eKey(r);lbl[k]=lbl[k]||eLabel(r);if(!hagg[k])hagg[k]={u:0,s:0,p:0};hagg[k].u+=r.Units;hagg[k].s+=r.Sales;hagg[k].p+=r.Profit;});
+  var allKeys=[...new Set([...Object.keys(agg),...Object.keys(hagg)])];
+  var cv=document.getElementById('mc');
+  if(chart)chart.destroy();
+  document.getElementById('pinCard').style.display='none';
+  var datasets=[];
+  allKeys.forEach(function(k,i){
+    var col=pal(i);
+    if(agg[k])datasets.push({label:lbl[k],data:[{x:agg[k].u,y:+agg[k].s.toFixed(2),_p:agg[k].p,_aur:agg[k].u>0?(agg[k].s/agg[k].u).toFixed(2):0}],backgroundColor:col+'88',borderColor:col,borderWidth:1.5,pointRadius:Math.max(5,Math.round(Math.sqrt(agg[k].u)/4)),pointHoverRadius:9,order:1});
+    if(hagg[k])datasets.push({label:(lbl[k]||k)+' (hist)',data:[{x:hagg[k].u,y:+hagg[k].s.toFixed(2),_p:hagg[k].p,_aur:hagg[k].u>0?(hagg[k].s/hagg[k].u).toFixed(2):0}],backgroundColor:'transparent',borderColor:col+'99',borderWidth:1.5,pointRadius:Math.max(4,Math.round(Math.sqrt(hagg[k].u)/4)),pointHoverRadius:7,pointStyle:'circle',order:10});
+  });
+  chart=new Chart(cv.getContext('2d'),{type:'scatter',data:{datasets:datasets},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:datasets.length<=20,position:'top',labels:{boxWidth:10,font:{size:10},padding:6}},tooltip:{enabled:false}},
+    onClick:function(evt,els){
+      if(!els.length){document.getElementById('pinCard').style.display='none';return;}
+      var el=els[0],ds=chart.data.datasets[el.datasetIndex],pt=ds.data[el.index];
+      var rect=cv.getBoundingClientRect();
+      showPin(evt.native.clientX-rect.left,evt.native.clientY-rect.top,ds.label,[
+        '\uD83D\uDCE6 Units: '+pt.x.toLocaleString(),
+        '\uD83D\uDCB0 Revenue: $'+pt.y.toLocaleString(undefined,{maximumFractionDigits:0}),
+        '\u2705 Profit: $'+(pt._p||0).toLocaleString(undefined,{maximumFractionDigits:0}),
+        '\uD83C\uDFF7\uFE0F AUR: $'+pt._aur
+      ]);
+    },
+    scales:{x:{title:{display:true,text:'Units Sold',font:{size:11}},ticks:{font:{size:10}}},
+      y:{title:{display:true,text:'Gross Revenue ($)',font:{size:11}},ticks:{font:{size:10},callback:function(v){return '$'+v.toLocaleString();}}}}}});
+}
+
+function renderGrams(data,histData,g){
+  // Only show gram-tracked categories; skip rows with no grams
+  const hasGrams=data.some(r=>(r.Grams||0)>0);
+  document.getElementById('cTitle').textContent='Grams Sold over Time'+(showHist&&hasUpload?' \u2014 with Historical Overlay':'')+(hasGrams?'':' \u2014 (no gram data in current filter)');
+  document.getElementById('cMeta').textContent=(g==='day'?'Daily':g==='week'?'Weekly':'Monthly')+' \u00b7 Flower & Pre-Roll classifications only';
+  const{agg,lbl,periods,ents}=buildGrid(data,g);
+  const currentDS=ents.map((k,i)=>({
+    label:lbl[k],
+    data:periods.map(p=>{const v=agg[k]?.[p];return(v&&v.g>0)?+v.g.toFixed(1):null;}),
+    borderColor:pal(i),backgroundColor:pal(i)+'20',
+    tension:.3,pointRadius:g==='day'?1.5:3.5,pointHoverRadius:6,spanGaps:false,borderWidth:2
+  }));
+  let hDS=[],allPeriods=periods;
+  if(histData&&histData.length){
+    const{agg:hagg,lbl:hlbl,periods:hp,ents:hents}=buildGrid(histData,g,HIST_DMIN,HIST_DMAX);
+    const pSet=new Set([...periods,...hp]);allPeriods=[...pSet].sort();
+    hDS=hents.map((k,i)=>({
+      label:(hlbl[k]||k)+' (hist)',
+      data:allPeriods.map(p=>{const v=hagg[k]?.[p];return(v&&v.g>0)?+v.g.toFixed(1):null;}),
+      borderColor:pal(i)+'99',backgroundColor:'transparent',borderDash:[5,4],
+      tension:.3,pointRadius:0,pointHoverRadius:4,spanGaps:false,borderWidth:1.5,order:10
+    }));
+    currentDS.forEach((ds,i)=>{
+      const ek=ents[i];
+      ds.data=allPeriods.map(p=>{const v=agg[ek]?.[p];return(v&&v.g>0)?+v.g.toFixed(1):null;});
+    });
+  }
+  mkChart('line',allPeriods,[...currentDS,...hDS],{scales:{
+    x:{ticks:{font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:26}},
+    y:{title:{display:true,text:'Grams Sold',font:{size:11}},ticks:{font:{size:10},callback:v=>v+'g'}}}});
+}
+
+function showPin(ex,ey,label,lines){
+  var card=document.getElementById('pinCard');
+  var wrap=document.getElementById('mc').parentElement;
+  var ww=wrap.offsetWidth,wh=wrap.offsetHeight,cw=255,ch=150;
+  var left=ex+14,top=ey-16;
+  if(left+cw>ww)left=ex-cw-10;
+  if(top+ch>wh)top=wh-ch-8;
+  if(top<0)top=4;if(left<0)left=4;
+  card.style.left=left+'px';card.style.top=top+'px';card.style.display='block';
+  document.getElementById('pinLabel').textContent=label;
+  document.getElementById('pinBody').innerHTML=lines.join('<br>');
+}
+
+function renderBubble(data,histData){
+  document.getElementById('cTitle').textContent='Units vs. Gross Margin $ \u2014 bubble size = Gross Sales'+(showHist&&hasUpload?' \u2014 with Historical':'');
+  document.getElementById('cMeta').textContent='Click a bubble to pin info'+(showHist&&hasUpload?' \u00b7 hollow = historical':'');
+  var agg={},hagg={},lbl={};
+  data.forEach(function(r){var k=eKey(r);lbl[k]=eLabel(r);if(!agg[k])agg[k]={u:0,s:0,p:0};agg[k].u+=r.Units;agg[k].s+=r.Sales;agg[k].p+=r.Profit;});
+  if(histData)histData.forEach(function(r){var k=eKey(r);lbl[k]=lbl[k]||eLabel(r);if(!hagg[k])hagg[k]={u:0,s:0,p:0};hagg[k].u+=r.Units;hagg[k].s+=r.Sales;hagg[k].p+=r.Profit;});
+  var allKeys=[...new Set([...Object.keys(agg),...Object.keys(hagg)])];
+  var maxS=Math.max(...[...Object.values(agg),...Object.values(hagg)].map(function(v){return v.s;}));
+  var cv=document.getElementById('mc');
+  if(chart)chart.destroy();
+  document.getElementById('pinCard').style.display='none';
+  var datasets=[];
+  allKeys.forEach(function(k,i){
+    var c=pal(i);
+    if(agg[k])datasets.push({label:lbl[k],data:[{x:agg[k].u,y:+agg[k].p.toFixed(2),r:Math.max(5,Math.round(agg[k].s/maxS*32)),_s:agg[k].s,_mp:agg[k].s>0?(agg[k].p/agg[k].s*100).toFixed(1):0}],backgroundColor:c+'88',borderColor:c,borderWidth:1.5,order:1});
+    if(hagg[k])datasets.push({label:(lbl[k]||k)+' (hist)',data:[{x:hagg[k].u,y:+hagg[k].p.toFixed(2),r:Math.max(5,Math.round(hagg[k].s/maxS*32)),_s:hagg[k].s,_mp:hagg[k].s>0?(hagg[k].p/hagg[k].s*100).toFixed(1):0}],backgroundColor:'transparent',borderColor:c+'99',borderWidth:1.5,order:10});
+  });
+  chart=new Chart(cv.getContext('2d'),{type:'bubble',data:{datasets:datasets},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:datasets.length<=20,position:'top',labels:{boxWidth:10,font:{size:10},padding:6}},tooltip:{enabled:false}},
+    onClick:function(evt,els){
+      if(!els.length){document.getElementById('pinCard').style.display='none';return;}
+      var el=els[0],ds=chart.data.datasets[el.datasetIndex],pt=ds.data[el.index];
+      var rect=cv.getBoundingClientRect();
+      showPin(evt.native.clientX-rect.left,evt.native.clientY-rect.top,ds.label,[
+        '\uD83D\uDCE6 Units: '+pt.x.toLocaleString(),
+        '\uD83D\uDCB0 Sales: $'+(pt._s||0).toLocaleString(undefined,{maximumFractionDigits:0}),
+        '\u2705 Margin: $'+pt.y.toLocaleString(undefined,{maximumFractionDigits:0}),
+        '\uD83D\uDCC8 Margin%: '+pt._mp+'%'
+      ]);
+    },
+    scales:{x:{title:{display:true,text:'Units Sold',font:{size:11}},ticks:{font:{size:10}}},
+      y:{title:{display:true,text:'Gross Margin ($)',font:{size:11}},ticks:{font:{size:10},callback:function(v){return '$'+v.toLocaleString();}}}}}});
+}
+
+// ── Supabase data source ───────────────────────────────────────────────
+// These two values are filled in from your Supabase project (Settings -> API).
+const SUPABASE_URL='https://fiemvhiqtfmkcmpnlpsj.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpZW12aGlxdGZta2NtcG5scHNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NTE5MDcsImV4cCI6MjA5NTQyNzkwN30.Pydxw56Ew7hxAebw5E222Xf1OKMbrrKxS4t1IaGQbfM';
+let _skuLoaded=false,_skuLoading=false;
+
+async function loadFromSupabase(){
+  const bTag=document.getElementById('bTag');
+  try{
+    if(SUPABASE_URL.indexOf('__')===0) throw new Error('Supabase URL/key not configured in dashboard.html');
+    const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+    bTag.textContent='Loading data…';
+    const {data:meta,error:me}=await sb.rpc('dataset_meta');
+    if(me) throw me;
+    const from=(meta&&meta.date_min)||'2000-01-01';
+    const to=(meta&&meta.date_max)||'2099-12-31';
+    const {data:bd,error:be}=await sb.rpc('weekly_brand_json',{p_from:from,p_to:to});
+    if(be) throw be;
+    liveBrand=bd||[]; liveSKU=[]; liveMaster=[]; _skuLoaded=false;
+    if(!liveBrand.length){bTag.textContent='No data yet — run vhrm.py to load Supabase.';return;}
+    ALL_BRANDS=[...new Set(liveBrand.map(r=>r.Brand))].sort();
+    ALL_CATS=[...new Set(liveBrand.map(r=>r.Classification).filter(Boolean))].sort();
+    ALL_LOCS=[...new Set(liveBrand.map(r=>r.Location).filter(Boolean))].sort();
+    const newCGs=[...new Set(ALL_CATS.map(cl=>CLS_TO_CAT[cl]).filter(Boolean))].sort();
+    newCGs.forEach(g=>{if(!ALL_CAT_GROUPS.includes(g))ALL_CAT_GROUPS.push(g);});
+    ALL_CAT_GROUPS.sort();
+    selB=new Set(ALL_BRANDS);selC=new Set(ALL_CATS);selL=new Set(ALL_LOCS);selK=new Set();selCG=new Set(ALL_CAT_GROUPS);
+    hasUpload=true;
+    rebuildBadges();
+    const dates=liveBrand.map(r=>r.Date).sort();
+    document.getElementById('dFrom').value=dates[0]||from;
+    document.getElementById('dTo').value=dates[dates.length-1]||to;
+    const upd=(meta&&meta.last_import)?new Date(meta.last_import).toLocaleString():'';
+    bTag.textContent=(upd?('Updated '+upd+'  ·  '):'')+liveBrand.length.toLocaleString()+' rows  ·  '+from+' → '+to;
+    setDim('brand');renderSB();update();
+  }catch(err){
+    console.error('Supabase load failed:',err);
+    bTag.textContent='Data load failed: '+(err&&err.message?err.message:err);
+  }
+}
+
+// Lazy-load SKU-level detail only when the SKU tab is first opened.
+async function loadSkuData(){
+  if(_skuLoaded||_skuLoading) return;
+  _skuLoading=true;
+  const bTag=document.getElementById('bTag');
+  const prev=bTag.textContent;
+  bTag.textContent='Loading SKU detail…';
+  try{
+    const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+    const {data,error}=await sb.rpc('sku_master_json',{p_from:'2000-01-01',p_to:'2099-12-31'});
+    if(error) throw error;
+    liveMaster=(data||[]).sort((a,b)=>b.Units-a.Units);
+    selK=new Set(); liveSKU=[];
+    _skuLoaded=true;
+    bTag.textContent=prev;
+    renderSB();update();
+  }catch(e){
+    console.error('SKU list load failed:',e);
+    bTag.textContent='SKU list failed: '+(e&&e.message?e.message:e);
+  }finally{ _skuLoading=false; }
+}
+
+// Fetch weekly detail only for the SKUs currently selected (keeps payloads tiny).
+let _seriesTimer=null;
+function scheduleSkuSeries(){ clearTimeout(_seriesTimer); _seriesTimer=setTimeout(loadSkuSeries,250); }
+async function loadSkuSeries(){
+  if(dim!=='sku'){ update(); return; }
+  const skus=[...selK];
+  if(!skus.length){ liveSKU=[]; update(); return; }
+  const sel=skus.slice(0,500);
+  try{
+    const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+    const {data,error}=await sb.rpc('sku_series_json',{p_from:'2000-01-01',p_to:'2099-12-31',p_skus:sel});
+    if(error) throw error;
+    liveSKU=data||[];
+    update();
+  }catch(e){ console.error('SKU series failed:',e); }
+}
+
+loadFromSupabase();
+
+
+// ── Export with embedded live data ────────────────────────────────────
+function exportWithData(){
+  if(!hasUpload){toast('Upload a CSV first, then click Export & Share.');return;}
+
+  // Serialize current live data compactly
+  const bdRows = liveBrand.map(r=>({
+    W:r.Week||r.Date, B:r.Brand, C:r.Classification||'', L:r.Location||'',
+    U:r.Units, S:+r.Sales.toFixed(2), PR:+r.Profit.toFixed(2), G:+(r.Grams||0).toFixed(3)
+  }));
+  const skRows = liveSKU.map(r=>({
+    W:r.Week||r.Date, B:r.Brand, K:r.SKU||'', P:(r.Product||'').slice(0,50),
+    C:r.Classification||'', L:r.Location||'',
+    U:r.Units, S:+r.Sales.toFixed(2), PR:+r.Profit.toFixed(2), G:+(r.Grams||0).toFixed(3),
+    UT:r.UnitType||'Each', NW:+(r.NetWeightPer||0)
+  }));
+  const bdJSON = JSON.stringify(bdRows);
+  const skJSON = JSON.stringify(skRows);
+
+  // Compute date range from live data
+  const dates = [...new Set(bdRows.map(r=>r.W))].sort();
+  const dMin = dates[0]||'2025-01-01';
+  const dMax = dates[dates.length-1]||'2026-12-31';
+  const exportDate = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+
+  let out = document.documentElement.outerHTML;
+
+  // --- Inject embedded live data block right before the existing let liveBrand= line ---
+  const liveBlock = `\n// ── Embedded live data (baked in at export) ──────────────────────────\nconst LIVE_BD=${bdJSON};\nconst LIVE_SK=${skJSON};\n`;
+
+  const oldInit = "let liveBrand=[...HIST_BRAND],liveSKU=[],liveMaster=[...HIST_MASTER];";
+  const newInit = liveBlock +
+    `const _LIVE_BRAND=LIVE_BD.map(r=>({Date:r.W,Week:r.W,Brand:r.B,Classification:r.C,Location:r.L,Units:r.U,Sales:r.S,Profit:r.PR,Grams:r.G||0}));\n` +
+    `const _LIVE_SKU=LIVE_SK.map(r=>({Date:r.W,Week:r.W,Brand:r.B,SKU:r.K,Product:r.P,Classification:r.C,Location:r.L,Units:r.U,Sales:r.S,Profit:r.PR,Grams:r.G||0,UnitType:r.UT||'Each',NetWeightPer:r.NW||0}));\n` +
+    `const _LIVE_MR={};_LIVE_BRAND.forEach(r=>{const k=r.Brand+r.Classification;if(!_LIVE_MR[k])_LIVE_MR[k]={Brand:r.Brand,SKU:r.Brand,Product:r.Brand,Classification:r.Classification,Units:0,Sales:0};_LIVE_MR[k].Units+=r.Units;_LIVE_MR[k].Sales+=r.Sales;});\n` +
+    `let liveBrand=[..._LIVE_BRAND],liveSKU=[..._LIVE_SKU],liveMaster=Object.values(_LIVE_MR).sort((a,b)=>b.Units-a.Units);`;
+
+  out = out.replace(oldInit, newInit);
+
+  // ALL_BRANDS/CATS/LOCS from live data
+  out = out.replace(
+    "let ALL_BRANDS=[...HIST_BRANDS],ALL_LOCS=[...HIST_LOCS],ALL_CATS=[...HIST_CATS];",
+    "let ALL_BRANDS=[...new Set(_LIVE_BRAND.map(r=>r.Brand))].sort();\nlet ALL_LOCS=[...new Set(_LIVE_BRAND.map(r=>r.Location).filter(Boolean))].sort();\nlet ALL_CATS=[...new Set(_LIVE_BRAND.map(r=>r.Classification).filter(Boolean))].sort();"
+  );
+
+  // selK from live master
+  out = out.replace(
+    "let selB=new Set(ALL_BRANDS),selK=new Set(HIST_MASTER.map(s=>s.SKU));",
+    "let selB=new Set(ALL_BRANDS),selK=new Set(liveMaster.map(s=>s.SKU));"
+  );
+
+  // hasUpload starts true
+  out = out.replace(
+    "let hasUpload=false, showHist=false;",
+    "let hasUpload=true, showHist=false;"
+  );
+
+  // Date range from live data
+  out = out.replace(
+    "document.getElementById('dFrom').value=HIST_DMIN;\ndocument.getElementById('dTo').value=HIST_DMAX;",
+    `document.getElementById('dFrom').value='${dMin}';\ndocument.getElementById('dTo').value='${dMax}';`
+  );
+
+  // Show histToggleWrap on load
+  out = out.replace(
+    "rebuildBadges();\n\ndocument.getElementById('dFrom')",
+    "rebuildBadges();\ndocument.getElementById('histToggleWrap').classList.add('visible');\ndocument.getElementById('dFrom')"
+  );
+
+  // Update upload strip message
+  out = out.replace(
+    '&#9989; Live data embedded (exported May 26, 2026) &mdash; all recipients see your data. Upload a new CSV to update.',
+    `&#9989; Live data embedded (exported ${exportDate}) &mdash; all recipients see your data. Upload a new CSV to update.`
+  );
+
+  // Hide the export button in the exported file (recipients don't need it)
+  out = out.replace(
+    'id="exportBtn" onclick="exportWithData()" style="display:none!important;visibility:hidden;',
+    'id="exportBtn" onclick="exportWithData()" style="display:none!important;visibility:hidden;'
+  );
+
+  // Download
+  const blob = new Blob(['<!DOCTYPE html>\n'+out], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'VHRM_Category_Tool_' + new Date().toISOString().slice(0,10) + '.html';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),8000);
+  toast('✓ Downloaded! Drop the file on netlify.com/drop and share the link.');
+}
+
+</script>
+
+</body></html>
