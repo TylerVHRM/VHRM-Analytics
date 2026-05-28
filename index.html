@@ -5,6 +5,8 @@
 <title>Vireo Health Rocky Mountain | Category Performance Analytics</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
 <style>.upload-strip{display:none!important}#histToggleWrap{display:none!important}</style>
 
 <style>
@@ -136,6 +138,8 @@ canvas{max-height:100%!important}
         <button class="cpill" id="cpUnitsRev" onclick="setC('unitsRev')">Units vs Revenue</button>
         <button class="cpill" id="cpGrams" onclick="setC('grams')">Grams over Time</button>
       </div>
+      <div class="vdiv"></div>
+      <button class="cpill" onclick="resetZoom()" title="Reset chart zoom &amp; pan (or scroll-wheel to zoom, drag to pan)">⟲ Reset Zoom</button>
       <div class="vdiv"></div>
       <!-- Historical overlay toggle — shown only after CSV upload -->
       <div id="histToggleWrap" class="visible">
@@ -563,13 +567,28 @@ function update(){
   else if(ct==='grams')renderGrams(data,histData,g);
 }
 
+// Enable mouse-wheel zoom + drag-pan on every chart (lets you magnify the
+// crowded low band to read individual brands/SKUs).
+if(window.Chart){
+  try{
+    var z=Chart.defaults.plugins.zoom||(Chart.defaults.plugins.zoom={});
+    z.zoom=z.zoom||{}; z.pan=z.pan||{};
+    z.zoom.wheel=Object.assign(z.zoom.wheel||{},{enabled:true});
+    z.zoom.pinch=Object.assign(z.zoom.pinch||{},{enabled:true});
+    z.zoom.drag=Object.assign(z.zoom.drag||{},{enabled:false});
+    z.zoom.mode='xy';
+    z.pan.enabled=true; z.pan.mode='xy';
+  }catch(e){}
+}
+function resetZoom(){ try{ if(chart&&chart.resetZoom) chart.resetZoom(); }catch(e){} }
+
 function mkChart(type,labels,datasets,opts){
   const ctx=document.getElementById('mc').getContext('2d');
   if(chart)chart.destroy();
   chart=new Chart(ctx,{type,data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:datasets.length<=20,position:'top',labels:{boxWidth:10,font:{size:10},padding:6}}},
     scales:{x:{ticks:{font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:26}},y:{ticks:{font:{size:10}}}},
-    interaction:{mode:'index',intersect:false},...(opts||{})}});
+    interaction:{mode:'nearest',intersect:false},...(opts||{})}});
 }
 
 // Build historical overlay datasets — dashed, semi-transparent, same color
