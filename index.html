@@ -124,6 +124,13 @@ canvas{max-height:100%!important}
           <option value="month">Monthly</option>
         </select>
       </div>
+      <div class="ctrl"><label>Type</label>
+        <select id="medFilter" onchange="setMedFilter(this.value)">
+          <option value="all" selected="">All</option>
+          <option value="rec">Recreational</option>
+          <option value="med">Medical</option>
+        </select>
+      </div>
       <div class="vdiv"></div>
       <div class="cpills">
         <button class="cpill on" id="cpAUR" onclick="setC('aur')">AUR over Time</button>
@@ -389,14 +396,14 @@ function selAll(v){
   const s={brand:selB,sku:selK,catgrp:selCG,cat:selC,store:selL}[dim];
   if(s)getItems(q).forEach(item=>v?s.add(item.id):s.delete(item.id));
   renderSB();
-  if(dim==='sku'){scheduleSkuSeries();}else{update();}
+  if(dim==='sku'){scheduleSkuSeries();}else if(dim==='store'){scheduleStoreRefetch();}else{update();}
 }
 
 function tog(id){
   const s={brand:selB,sku:selK,catgrp:selCG,cat:selC,store:selL}[dim];
   if(s){s.has(id)?s.delete(id):s.add(id);}
   renderSB();
-  if(dim==='sku'){scheduleSkuSeries();}else{update();}
+  if(dim==='sku'){scheduleSkuSeries();}else if(dim==='store'){scheduleStoreRefetch();}else{update();}
 }
 
 function renderSB(){
@@ -436,7 +443,9 @@ function filterData(srcBrand,srcSKU){
     if(!selB.has(r.Brand)) continue;
     if(r.Classification&&!selC.has(r.Classification)) continue;
     if(r.Classification&&typeof CLS_TO_CAT!=='undefined'&&typeof selCG!=='undefined'){var cg=CLS_TO_CAT[r.Classification];if(cg&&!selCG.has(cg))continue;}
-    if(r.Location&&!selL.has(r.Location)) continue;
+    // Store filtering is done server-side (rows are pre-summed over selected stores).
+    if(_medFilter==='med'&&!r.Medical) continue;
+    if(_medFilter==='rec'&&r.Medical) continue;
     if(isSkuDim&&!selK.has(r.SKU)) continue;
     result.push(r);
   }
@@ -463,7 +472,7 @@ function filterHist(){
 
 function eKey(r){return dim==='sku'?r.SKU:r.Brand;}
 function eLabel(r){return dim==='sku'?(r.Brand+': '+r.Product):r.Brand;}
-function pk(r,g){return g==='month'?(r.Week||r.Date).slice(0,7):r.Week||r.Date;}
+function pk(r,g){return g==='day'?r.Date:g==='month'?(r.Week||r.Date).slice(0,7):(r.Week||r.Date);}
 
 var _fc={};
 function fillDates(from,to,g){
@@ -621,11 +630,13 @@ function renderLine(data,histData,g,metric){
   // Current data datasets (solid)
   const currentDS=ents.map((k,i)=>({
     label:lbl[k],
-    data:periods.map(p=>{const v=agg[k]?.[p];if(!v||!v.u)return null;
-      return metric==='aur'?+(v.s/v.u).toFixed(2):metric==='margin'?+(v.p/v.s*100).toFixed(2):v.u;}),
+    data:periods.map(p=>{const v=agg[k]?.[p];
+      if(metric==='aur')return (v&&v.u)?+(v.s/v.u).toFixed(2):null;        // ratio: gap when no sales (connected)
+      if(metric==='margin')return (v&&v.s)?+(v.p/v.s*100).toFixed(2):null; // ratio: gap when no sales (connected)
+      return v?v.u:0;}),                                                   // count: zero-fill (continuous line, zeros visible)
     borderColor:pal(i),backgroundColor:pal(i)+'20',
     tension:.3,pointRadius:g==='day'?1.5:3.5,pointHoverRadius:6,
-    spanGaps:false,borderWidth:2,order:1
+    spanGaps:true,borderWidth:2,order:1
   }));
   // Historical datasets (dashed underlay)
   const hDS=histDatasets(histData,g,metric);
@@ -660,7 +671,7 @@ function renderRoll7(data,histData){
   document.getElementById('cMeta').textContent='Trailing 7-day window \u00b7 daily grain';
   const{agg,lbl,periods,ents}=buildGrid(data,'day');
   const currentDS=ents.map((k,i)=>({
-    label:lbl[k],data:roll7(periods.map(p=>agg[k]?.[p]?.u||null)),
+    label:lbl[k],data:roll7(periods.map(p=>agg[k]?.[p]?.u||0)),
     borderColor:pal(i),backgroundColor:pal(i)+'15',
     tension:.45,pointRadius:0,pointHoverRadius:5,spanGaps:true,borderWidth:2.5,fill:false,order:1
   }));
@@ -788,11 +799,13 @@ function renderGrams(data,histData,g){
   document.getElementById('cTitle').textContent='Grams Sold over Time'+(showHist&&hasUpload?' \u2014 with Historical Overlay':'')+(hasGrams?'':' \u2014 (no gram data in current filter)');
   document.getElementById('cMeta').textContent=(g==='day'?'Daily':g==='week'?'Weekly':'Monthly')+' \u00b7 Flower & Pre-Roll classifications only';
   const{agg,lbl,periods,ents}=buildGrid(data,g);
+  // Only draw entities that actually sell grams (flower/pre-roll); zero-fill their gaps.
+  const gramEnts={};ents.forEach(k=>{gramEnts[k]=Object.keys(agg[k]||{}).some(p=>agg[k][p].g>0);});
   const currentDS=ents.map((k,i)=>({
     label:lbl[k],
-    data:periods.map(p=>{const v=agg[k]?.[p];return(v&&v.g>0)?+v.g.toFixed(1):null;}),
+    data:periods.map(p=>{if(!gramEnts[k])return null;const v=agg[k]?.[p];return v?+(v.g||0).toFixed(1):0;}),
     borderColor:pal(i),backgroundColor:pal(i)+'20',
-    tension:.3,pointRadius:g==='day'?1.5:3.5,pointHoverRadius:6,spanGaps:false,borderWidth:2
+    tension:.3,pointRadius:g==='day'?1.5:3.5,pointHoverRadius:6,spanGaps:true,borderWidth:2
   }));
   let hDS=[],allPeriods=periods;
   if(histData&&histData.length){
@@ -865,56 +878,79 @@ function renderBubble(data,histData){
 // These two values are filled in from your Supabase project (Settings -> API).
 const SUPABASE_URL='https://fiemvhiqtfmkcmpnlpsj.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpZW12aGlxdGZta2NtcG5scHNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NTE5MDcsImV4cCI6MjA5NTQyNzkwN30.Pydxw56Ew7hxAebw5E222Xf1OKMbrrKxS4t1IaGQbfM';
-let _skuLoaded=false,_skuLoading=false;
+let _skuLoaded=false,_skuLoading=false,_brandLoading=false;
+let _sb=null, DMIN='2000-01-01', DMAX='2099-12-31', _medFilter='all', _lastUpd='';
+function sbc(){ if(!_sb) _sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY); return _sb; }
+// Selected stores → param for server-side aggregation (null = all stores).
+function locsParam(){ return (selL && ALL_LOCS.length && selL.size<ALL_LOCS.length) ? [...selL] : null; }
+function setMedFilter(v){ _medFilter=v; update(); }
 
 async function loadFromSupabase(){
   const bTag=document.getElementById('bTag');
   try{
     if(SUPABASE_URL.indexOf('__')===0) throw new Error('Supabase URL/key not configured in dashboard.html');
-    const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+    const sb=sbc();
     bTag.textContent='Loading data…';
-    const {data:meta,error:me}=await sb.rpc('dataset_meta');
-    if(me) throw me;
-    const from=(meta&&meta.date_min)||'2000-01-01';
-    const to=(meta&&meta.date_max)||'2099-12-31';
-    const {data:bd,error:be}=await sb.rpc('weekly_brand_json',{p_from:from,p_to:to});
-    if(be) throw be;
-    liveBrand=bd||[]; liveSKU=[]; liveMaster=[]; _skuLoaded=false;
-    if(!liveBrand.length){bTag.textContent='No data yet — run vhrm.py to load Supabase.';return;}
-    ALL_BRANDS=[...new Set(liveBrand.map(r=>r.Brand))].sort();
-    ALL_CATS=[...new Set(liveBrand.map(r=>r.Classification).filter(Boolean))].sort();
-    ALL_LOCS=[...new Set(liveBrand.map(r=>r.Location).filter(Boolean))].sort();
-    const newCGs=[...new Set(ALL_CATS.map(cl=>CLS_TO_CAT[cl]).filter(Boolean))].sort();
-    newCGs.forEach(g=>{if(!ALL_CAT_GROUPS.includes(g))ALL_CAT_GROUPS.push(g);});
+    const {data:meta,error:me}=await sb.rpc('dataset_meta2'); if(me) throw me;
+    DMIN=(meta&&meta.date_min)||'2000-01-01'; DMAX=(meta&&meta.date_max)||'2099-12-31';
+    const {data:fo,error:fe}=await sb.rpc('filter_options'); if(fe) throw fe;
+    ALL_BRANDS=(fo.brands||[]).slice().sort();
+    ALL_CATS=(fo.classifications||[]).slice().sort();
+    ALL_LOCS=(fo.locations||[]).slice().sort();
+    (fo.category_groups||[]).forEach(g=>{if(!ALL_CAT_GROUPS.includes(g))ALL_CAT_GROUPS.push(g);});
     ALL_CAT_GROUPS.sort();
-    selB=new Set(ALL_BRANDS);selC=new Set(ALL_CATS);selL=new Set(ALL_LOCS);selK=new Set();selCG=new Set(ALL_CAT_GROUPS);
+    selB=new Set(ALL_BRANDS);selC=new Set(ALL_CATS);selL=new Set(ALL_LOCS);selCG=new Set(ALL_CAT_GROUPS);selK=new Set();
     hasUpload=true;
-    rebuildBadges();
-    const dates=liveBrand.map(r=>r.Date).sort();
-    document.getElementById('dFrom').value=dates[0]||from;
-    document.getElementById('dTo').value=dates[dates.length-1]||to;
-    const upd=(meta&&meta.last_import)?new Date(meta.last_import).toLocaleString():'';
-    bTag.textContent=(upd?('Updated '+upd+'  ·  '):'')+liveBrand.length.toLocaleString()+' rows  ·  '+from+' → '+to;
-    setDim('brand');renderSB();update();
+    document.getElementById('dFrom').value=DMIN;
+    document.getElementById('dTo').value=DMAX;
+    _lastUpd=(meta&&meta.last_import)?new Date(meta.last_import).toLocaleString():'';
+    await loadBrandSeries();
   }catch(err){
     console.error('Supabase load failed:',err);
     bTag.textContent='Data load failed: '+(err&&err.message?err.message:err);
   }
 }
 
+// Daily brand series, summed across the currently selected stores (server-side).
+async function loadBrandSeries(){
+  if(_brandLoading) return; _brandLoading=true;
+  const bTag=document.getElementById('bTag');
+  try{
+    const {data,error}=await sbc().rpc('brand_series',{p_from:DMIN,p_to:DMAX,p_locs:locsParam()});
+    if(error) throw error;
+    liveBrand=data||[];
+    for(var i=0;i<liveBrand.length;i++){ liveBrand[i].Week=toWeek(liveBrand[i].Date); }
+    if(!liveBrand.length){bTag.textContent='No data yet — run vhrm.py to load Supabase.';renderSB();update();return;}
+    rebuildBadges();
+    const storeTxt=locsParam()?(selL.size+' of '+ALL_LOCS.length+' stores'):'all stores';
+    bTag.textContent=(_lastUpd?('Updated '+_lastUpd+'  ·  '):'')+'Daily  ·  '+DMIN+' → '+DMAX+'  ·  '+storeTxt;
+    renderSB(); update();
+  }catch(e){ console.error('brand_series failed:',e); bTag.textContent='Load failed: '+(e&&e.message?e.message:e); }
+  finally{ _brandLoading=false; }
+}
+
+// When the store selection changes, re-aggregate server-side (brand + SKU if loaded).
+let _storeTimer=null;
+function scheduleStoreRefetch(){
+  clearTimeout(_storeTimer);
+  _storeTimer=setTimeout(async function(){
+    await loadBrandSeries();
+    if(_skuLoaded){ await loadSkuData(true); if(dim==='sku') await loadSkuSeries(); }
+  },300);
+}
+
 // Lazy-load SKU-level detail only when the SKU tab is first opened.
-async function loadSkuData(){
-  if(_skuLoaded||_skuLoading) return;
+async function loadSkuData(force){
+  if((_skuLoaded&&!force)||_skuLoading) return;
   _skuLoading=true;
   const bTag=document.getElementById('bTag');
   const prev=bTag.textContent;
-  bTag.textContent='Loading SKU detail…';
+  bTag.textContent='Loading SKU list…';
   try{
-    const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-    const {data,error}=await sb.rpc('sku_master_json',{p_from:'2000-01-01',p_to:'2099-12-31'});
+    const {data,error}=await sbc().rpc('sku_master2',{p_from:DMIN,p_to:DMAX,p_locs:locsParam()});
     if(error) throw error;
     liveMaster=(data||[]).sort((a,b)=>b.Units-a.Units);
-    selK=new Set(); liveSKU=[];
+    if(!force) selK=new Set();
     _skuLoaded=true;
     bTag.textContent=prev;
     renderSB();update();
@@ -924,7 +960,7 @@ async function loadSkuData(){
   }finally{ _skuLoading=false; }
 }
 
-// Fetch weekly detail only for the SKUs currently selected (keeps payloads tiny).
+// Fetch daily detail only for the SKUs currently selected (summed over selected stores).
 let _seriesTimer=null;
 function scheduleSkuSeries(){ clearTimeout(_seriesTimer); _seriesTimer=setTimeout(loadSkuSeries,250); }
 async function loadSkuSeries(){
@@ -933,10 +969,10 @@ async function loadSkuSeries(){
   if(!skus.length){ liveSKU=[]; update(); return; }
   const sel=skus.slice(0,500);
   try{
-    const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-    const {data,error}=await sb.rpc('sku_series_json',{p_from:'2000-01-01',p_to:'2099-12-31',p_skus:sel});
+    const {data,error}=await sbc().rpc('sku_series2',{p_from:DMIN,p_to:DMAX,p_skus:sel,p_locs:locsParam()});
     if(error) throw error;
     liveSKU=data||[];
+    for(var i=0;i<liveSKU.length;i++){ liveSKU[i].Week=toWeek(liveSKU[i].Date); }
     update();
   }catch(e){ console.error('SKU series failed:',e); }
 }
