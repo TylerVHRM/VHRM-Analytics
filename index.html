@@ -741,23 +741,30 @@ function renderScatter(data,histData,isRev){
   document.getElementById('cTitle').textContent=isRev
     ?'Scatter \u2014 Daily Revenue (Y) vs. Daily Avg Unit Retail (X)'
     :'Scatter \u2014 Daily Margin $ (Y) vs. Daily Avg Unit Margin (X)';
-  document.getElementById('cMeta').textContent='Each dot = one brand-week'+(showHist&&hasUpload?' \u00b7 hollow = historical':'');
+  document.getElementById('cMeta').textContent='Each dot = one brand-day \u00b7 dot size = units sold that day'+(showHist&&hasUpload?' \u00b7 hollow = historical':'');
   var byE={},hByE={},lbl={};
   data.forEach(function(r){
     if(!r.Units||!r.Sales)return;
     var k=eKey(r);lbl[k]=eLabel(r);if(!byE[k])byE[k]=[];
-    byE[k].push({x:isRev?+(r.Sales/r.Units).toFixed(2):+(r.Profit/r.Units).toFixed(2),y:isRev?+r.Sales.toFixed(0):+r.Profit.toFixed(2),d:r.Date});
+    byE[k].push({x:isRev?+(r.Sales/r.Units).toFixed(2):+(r.Profit/r.Units).toFixed(2),y:isRev?+r.Sales.toFixed(0):+r.Profit.toFixed(2),d:r.Date,_u:r.Units});
   });
   if(histData)histData.forEach(function(r){
     if(!r.Units||!r.Sales)return;
     var k=eKey(r);lbl[k]=lbl[k]||eLabel(r);if(!hByE[k])hByE[k]=[];
-    hByE[k].push({x:isRev?+(r.Sales/r.Units).toFixed(2):+(r.Profit/r.Units).toFixed(2),y:isRev?+r.Sales.toFixed(0):+r.Profit.toFixed(2),d:r.Date});
+    hByE[k].push({x:isRev?+(r.Sales/r.Units).toFixed(2):+(r.Profit/r.Units).toFixed(2),y:isRev?+r.Sales.toFixed(0):+r.Profit.toFixed(2),d:r.Date,_u:r.Units});
   });
+  // Per-point dot size: sqrt scaling of units, clamped \u2014 small days small, big days big.
+  function _radCur(u){return Math.max(3,Math.min(22,Math.sqrt(u||0)*1.3));}
+  function _radHst(u){return Math.max(2,Math.min(20,Math.sqrt(u||0)*1.1));}
   var ents=[...new Set([...Object.keys(byE),...Object.keys(hByE)])];
   var datasets=[];
   ents.forEach(function(k,i){
-    if(byE[k])datasets.push({label:lbl[k],data:byE[k],backgroundColor:pal(i)+'66',borderColor:pal(i),borderWidth:1,pointRadius:3,pointHoverRadius:6,order:1});
-    if(hByE[k])datasets.push({label:(lbl[k]||('SKU '+k))+' (hist)',data:hByE[k],backgroundColor:'transparent',borderColor:pal(i)+'99',borderWidth:1.5,pointRadius:2,pointHoverRadius:5,pointStyle:'circle',order:10});
+    if(byE[k])datasets.push({label:lbl[k],data:byE[k],backgroundColor:pal(i)+'66',borderColor:pal(i),borderWidth:1,
+      pointRadius:byE[k].map(function(pt){return _radCur(pt._u);}),
+      pointHoverRadius:byE[k].map(function(pt){return _radCur(pt._u)+3;}),order:1});
+    if(hByE[k])datasets.push({label:(lbl[k]||('SKU '+k))+' (hist)',data:hByE[k],backgroundColor:'transparent',borderColor:pal(i)+'99',borderWidth:1.5,
+      pointRadius:hByE[k].map(function(pt){return _radHst(pt._u);}),
+      pointHoverRadius:hByE[k].map(function(pt){return _radHst(pt._u)+3;}),pointStyle:'circle',order:10});
   });
   var ctx=document.getElementById('mc').getContext('2d');
   if(chart)chart.destroy();
@@ -766,7 +773,8 @@ function renderScatter(data,histData,isRev){
       tooltip:{callbacks:{label:function(c){
         var xLbl=isRev?'AUR $'+c.raw.x:'AUM $'+c.raw.x;
         var yLbl=isRev?'Rev $'+c.raw.y.toLocaleString():'Margin $'+c.raw.y.toLocaleString();
-        return ' '+c.dataset.label+': '+xLbl+' \u00b7 '+yLbl+' ('+c.raw.d+')';
+        var uLbl=c.raw._u?(' \u00b7 '+Number(c.raw._u).toLocaleString()+' units'):'';
+        return ' '+c.dataset.label+': '+xLbl+' \u00b7 '+yLbl+uLbl+' ('+c.raw.d+')';
       }}}},
     scales:{
       x:{title:{display:true,text:isRev?'Avg Unit Retail ($)':'Avg Unit Margin ($)',font:{size:11}},ticks:{font:{size:10},callback:function(v){return '$'+v;}}},
@@ -788,8 +796,8 @@ function renderUnitsRev(data,histData){
   var datasets=[];
   allKeys.forEach(function(k,i){
     var col=pal(i);
-    if(agg[k])datasets.push({label:lbl[k],data:[{x:agg[k].u,y:+agg[k].s.toFixed(2),_p:agg[k].p,_aur:agg[k].u>0?(agg[k].s/agg[k].u).toFixed(2):0}],backgroundColor:col+'88',borderColor:col,borderWidth:1.5,pointRadius:Math.max(5,Math.round(Math.sqrt(agg[k].u)/4)),pointHoverRadius:9,order:1});
-    if(hagg[k])datasets.push({label:(lbl[k]||('SKU '+k))+' (hist)',data:[{x:hagg[k].u,y:+hagg[k].s.toFixed(2),_p:hagg[k].p,_aur:hagg[k].u>0?(hagg[k].s/hagg[k].u).toFixed(2):0}],backgroundColor:'transparent',borderColor:col+'99',borderWidth:1.5,pointRadius:Math.max(4,Math.round(Math.sqrt(hagg[k].u)/4)),pointHoverRadius:7,pointStyle:'circle',order:10});
+    if(agg[k])datasets.push({label:lbl[k],data:[{x:agg[k].u,y:+agg[k].s.toFixed(2),_p:agg[k].p,_aur:agg[k].u>0?(agg[k].s/agg[k].u).toFixed(2):0}],backgroundColor:col+'88',borderColor:col,borderWidth:1.5,pointRadius:Math.max(3,Math.min(30,Math.round(Math.sqrt(agg[k].u)/3))),pointHoverRadius:Math.max(6,Math.min(34,Math.round(Math.sqrt(agg[k].u)/3)+4)),order:1});
+    if(hagg[k])datasets.push({label:(lbl[k]||('SKU '+k))+' (hist)',data:[{x:hagg[k].u,y:+hagg[k].s.toFixed(2),_p:hagg[k].p,_aur:hagg[k].u>0?(hagg[k].s/hagg[k].u).toFixed(2):0}],backgroundColor:'transparent',borderColor:col+'99',borderWidth:1.5,pointRadius:Math.max(3,Math.min(26,Math.round(Math.sqrt(hagg[k].u)/3))),pointHoverRadius:Math.max(5,Math.min(30,Math.round(Math.sqrt(hagg[k].u)/3)+3)),pointStyle:'circle',order:10});
   });
   chart=new Chart(cv.getContext('2d'),{type:'scatter',data:{datasets:datasets},options:{responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:datasets.length<=20,position:'top',labels:{boxWidth:10,font:{size:10},padding:6}},tooltip:{enabled:false}},
@@ -869,8 +877,8 @@ function renderBubble(data,histData){
   var datasets=[];
   allKeys.forEach(function(k,i){
     var c=pal(i);
-    if(agg[k])datasets.push({label:lbl[k],data:[{x:agg[k].u,y:+agg[k].p.toFixed(2),r:Math.max(5,Math.round(agg[k].s/maxS*32)),_s:agg[k].s,_mp:agg[k].s>0?(agg[k].p/agg[k].s*100).toFixed(1):0}],backgroundColor:c+'88',borderColor:c,borderWidth:1.5,order:1});
-    if(hagg[k])datasets.push({label:(lbl[k]||('SKU '+k))+' (hist)',data:[{x:hagg[k].u,y:+hagg[k].p.toFixed(2),r:Math.max(5,Math.round(hagg[k].s/maxS*32)),_s:hagg[k].s,_mp:hagg[k].s>0?(hagg[k].p/hagg[k].s*100).toFixed(1):0}],backgroundColor:'transparent',borderColor:c+'99',borderWidth:1.5,order:10});
+    if(agg[k])datasets.push({label:lbl[k],data:[{x:agg[k].u,y:+agg[k].p.toFixed(2),r:Math.max(3,Math.min(40,Math.round(Math.sqrt(Math.max(0,agg[k].s)/maxS)*36)+3)),_s:agg[k].s,_mp:agg[k].s>0?(agg[k].p/agg[k].s*100).toFixed(1):0}],backgroundColor:c+'88',borderColor:c,borderWidth:1.5,order:1});
+    if(hagg[k])datasets.push({label:(lbl[k]||('SKU '+k))+' (hist)',data:[{x:hagg[k].u,y:+hagg[k].p.toFixed(2),r:Math.max(3,Math.min(36,Math.round(Math.sqrt(Math.max(0,hagg[k].s)/maxS)*32)+2)),_s:hagg[k].s,_mp:hagg[k].s>0?(hagg[k].p/hagg[k].s*100).toFixed(1):0}],backgroundColor:'transparent',borderColor:c+'99',borderWidth:1.5,order:10});
   });
   chart=new Chart(cv.getContext('2d'),{type:'bubble',data:{datasets:datasets},options:{responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:datasets.length<=20,position:'top',labels:{boxWidth:10,font:{size:10},padding:6}},tooltip:{enabled:false}},
