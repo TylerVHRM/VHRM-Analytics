@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -154,10 +154,11 @@ canvas{max-height:100%!important}
         <button class="cpill" id="cpR7" onclick="setC('r7')">7-Day Rolling Avg</button>
         <button class="cpill" id="cpOverlay" onclick="setC('overlay')">AUR Overlay</button>
         <button class="cpill" id="cpMargin" onclick="setC('margin')">Margin over Time</button>
-        <button class="cpill" id="cpRevAUR" onclick="setC('revAUR')">Rev vs AUR ·</button>
-        <button class="cpill" id="cpMarAUR" onclick="setC('marAUR')">Margin $ vs AUM ·</button>
-        <button class="cpill" id="cpBubble" onclick="setC('bubble')">Units vs Margin $</button>
-        <button class="cpill" id="cpUnitsRev" onclick="setC('unitsRev')">Units vs Revenue</button>
+        <button class="cpill" id="cpStars" onclick="setC('stars')">Stars</button>
+        <button class="cpill" id="cpWorkhorses" onclick="setC('workhorses')">Workhorses</button>
+        <button class="cpill" id="cpNiches" onclick="setC('niches')">Niches</button>
+        <button class="cpill" id="cpDogs" onclick="setC('dogs')">Dogs</button>
+        <button class="cpill" id="cpBottom10" onclick="setC('bottom10')">Bottom 10%</button>
         <button class="cpill" id="cpGrams" onclick="setC('grams')">Grams over Time</button>
       </div>
       <div class="vdiv"></div>
@@ -442,7 +443,7 @@ function togIdx(el){
 }
 
 // ── Chart type ─────────────────────────────────────────────────────────
-const CPMAP={aur:'cpAUR',units:'cpUnits',daily:'cpDaily',r7:'cpR7',overlay:'cpOverlay',margin:'cpMargin',revAUR:'cpRevAUR',marAUR:'cpMarAUR',bubble:'cpBubble',unitsRev:'cpUnitsRev',grams:'cpGrams'};
+const CPMAP={aur:'cpAUR',units:'cpUnits',daily:'cpDaily',r7:'cpR7',overlay:'cpOverlay',margin:'cpMargin',stars:'cpStars',workhorses:'cpWorkhorses',niches:'cpNiches',dogs:'cpDogs',bottom10:'cpBottom10',grams:'cpGrams'};
 function setC(t){ct=t;document.querySelectorAll('.cpill').forEach(el=>el.classList.remove('on'));document.getElementById(CPMAP[t])?.classList.add('on');update();}
 
 // ── Data helpers ───────────────────────────────────────────────────────
@@ -584,10 +585,11 @@ function update(){
   else if(ct==='r7')renderRoll7(data,histData);
   else if(ct==='overlay')renderOverlay(data,histData,g);
   else if(ct==='margin')renderLine(data,histData,g,'margin');
-  else if(ct==='revAUR')renderScatter(data,histData,true);
-  else if(ct==='marAUR')renderScatter(data,histData,false);
-  else if(ct==='bubble')renderBubble(data,histData);
-  else if(ct==='unitsRev')renderUnitsRev(data,histData);
+  else if(ct==='stars')renderBrandProductivity(data,'stars');
+  else if(ct==='workhorses')renderBrandProductivity(data,'workhorses');
+  else if(ct==='niches')renderBrandProductivity(data,'niches');
+  else if(ct==='dogs')renderBrandProductivity(data,'dogs');
+  else if(ct==='bottom10')renderBrandProductivity(data,'bottom10');
   else if(ct==='grams')renderGrams(data,histData,g);
 }
 
@@ -737,83 +739,50 @@ function renderOverlay(data,histData,g){
     yA:{type:'linear',position:'right',title:{display:true,text:'AUR ($)',font:{size:10}},ticks:{font:{size:10},callback:v=>'$'+v},grid:{drawOnChartArea:false}}},interaction:{mode:'index',intersect:false}});
 }
 
-function renderScatter(data,histData,isRev){
-  document.getElementById('cTitle').textContent=isRev
-    ?'Scatter \u2014 Daily Revenue (Y) vs. Daily Avg Unit Retail (X)'
-    :'Scatter \u2014 Daily Margin $ (Y) vs. Daily Avg Unit Margin (X)';
-  document.getElementById('cMeta').textContent='Each dot = one brand-day \u00b7 dot size = units sold that day'+(showHist&&hasUpload?' \u00b7 hollow = historical':'');
-  var byE={},hByE={},lbl={};
-  data.forEach(function(r){
-    if(!r.Units||!r.Sales)return;
-    var k=eKey(r);lbl[k]=eLabel(r);if(!byE[k])byE[k]=[];
-    byE[k].push({x:isRev?+(r.Sales/r.Units).toFixed(2):+(r.Profit/r.Units).toFixed(2),y:isRev?+r.Sales.toFixed(0):+r.Profit.toFixed(2),d:r.Date,_u:r.Units});
-  });
-  if(histData)histData.forEach(function(r){
-    if(!r.Units||!r.Sales)return;
-    var k=eKey(r);lbl[k]=lbl[k]||eLabel(r);if(!hByE[k])hByE[k]=[];
-    hByE[k].push({x:isRev?+(r.Sales/r.Units).toFixed(2):+(r.Profit/r.Units).toFixed(2),y:isRev?+r.Sales.toFixed(0):+r.Profit.toFixed(2),d:r.Date,_u:r.Units});
-  });
-  // Per-point dot size: sqrt scaling of units, clamped \u2014 small days small, big days big.
-  function _radCur(u){return Math.max(3,Math.min(22,Math.sqrt(u||0)*1.3));}
-  function _radHst(u){return Math.max(2,Math.min(20,Math.sqrt(u||0)*1.1));}
-  var ents=[...new Set([...Object.keys(byE),...Object.keys(hByE)])];
-  var datasets=[];
-  ents.forEach(function(k,i){
-    if(byE[k])datasets.push({label:lbl[k],data:byE[k],backgroundColor:pal(i)+'66',borderColor:pal(i),borderWidth:1,
-      pointRadius:byE[k].map(function(pt){return _radCur(pt._u);}),
-      pointHoverRadius:byE[k].map(function(pt){return _radCur(pt._u)+3;}),order:1});
-    if(hByE[k])datasets.push({label:(lbl[k]||('SKU '+k))+' (hist)',data:hByE[k],backgroundColor:'transparent',borderColor:pal(i)+'99',borderWidth:1.5,
-      pointRadius:hByE[k].map(function(pt){return _radHst(pt._u);}),
-      pointHoverRadius:hByE[k].map(function(pt){return _radHst(pt._u)+3;}),pointStyle:'circle',order:10});
-  });
-  var ctx=document.getElementById('mc').getContext('2d');
-  if(chart)chart.destroy();
-  chart=new Chart(ctx,{type:'scatter',data:{datasets:datasets},options:{responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:datasets.length<=20,position:'top',labels:{boxWidth:10,font:{size:10},padding:6}},
-      tooltip:{callbacks:{label:function(c){
-        var xLbl=isRev?'AUR $'+c.raw.x:'AUM $'+c.raw.x;
-        var yLbl=isRev?'Rev $'+c.raw.y.toLocaleString():'Margin $'+c.raw.y.toLocaleString();
-        var uLbl=c.raw._u?(' \u00b7 '+Number(c.raw._u).toLocaleString()+' units'):'';
-        return ' '+c.dataset.label+': '+xLbl+' \u00b7 '+yLbl+uLbl+' ('+c.raw.d+')';
-      }}}},
-    scales:{
-      x:{title:{display:true,text:isRev?'Avg Unit Retail ($)':'Avg Unit Margin ($)',font:{size:11}},ticks:{font:{size:10},callback:function(v){return '$'+v;}}},
-      y:{title:{display:true,text:isRev?'Revenue ($)':'Gross Margin ($)',font:{size:11}},ticks:{font:{size:10},callback:function(v){return '$'+v.toLocaleString();}}}
-    }}});
-}
-
-
-function renderUnitsRev(data,histData){
-  document.getElementById('cTitle').textContent='Units vs. Revenue'+(showHist&&hasUpload?' \u2014 with Historical':'');
-  document.getElementById('cMeta').textContent='Click a dot to pin info'+(showHist&&hasUpload?' \u00b7 hollow = historical':'');
-  var agg={},hagg={},lbl={};
-  data.forEach(function(r){var k=eKey(r);lbl[k]=eLabel(r);if(!agg[k])agg[k]={u:0,s:0,p:0};agg[k].u+=r.Units;agg[k].s+=r.Sales;agg[k].p+=r.Profit;});
-  if(histData)histData.forEach(function(r){var k=eKey(r);lbl[k]=lbl[k]||eLabel(r);if(!hagg[k])hagg[k]={u:0,s:0,p:0};hagg[k].u+=r.Units;hagg[k].s+=r.Sales;hagg[k].p+=r.Profit;});
-  var allKeys=[...new Set([...Object.keys(agg),...Object.keys(hagg)])];
+function renderBrandProductivity(data,quadrant){
+  var agg={},lbl={};
+  data.forEach(function(r){var k=eKey(r);lbl[k]=eLabel(r);if(!agg[k])agg[k]={u:0,p:0,s:0};agg[k].u+=r.Units;agg[k].p+=r.Profit;agg[k].s+=r.Sales;});
+  var keys=Object.keys(agg);
+  if(!keys.length)return;
+  var allU=keys.map(function(k){return agg[k].u;}).slice().sort(function(a,b){return a-b;});
+  var allP=keys.map(function(k){return agg[k].p;}).slice().sort(function(a,b){return a-b;});
+  var medU=allU[Math.floor(allU.length/2)];
+  var medP=allP[Math.floor(allP.length/2)];
+  var filtered,quadDesc,quadColor;
+  if(quadrant==='stars'){filtered=keys.filter(function(k){return agg[k].u>=medU&&agg[k].p>=medP;});quadDesc='high units \u00b7 high margin';quadColor='#16a34a';}
+  else if(quadrant==='workhorses'){filtered=keys.filter(function(k){return agg[k].u>=medU&&agg[k].p<medP;});quadDesc='high units \u00b7 lower margin';quadColor='#1a56db';}
+  else if(quadrant==='niches'){filtered=keys.filter(function(k){return agg[k].u<medU&&agg[k].p>=medP;});quadDesc='lower units \u00b7 high margin';quadColor='#9333ea';}
+  else if(quadrant==='dogs'){filtered=keys.filter(function(k){return agg[k].u<medU&&agg[k].p<medP;});quadDesc='lower units \u00b7 lower margin';quadColor='#dc2626';}
+  else{var srtd=keys.slice().sort(function(a,b){return agg[a].p-agg[b].p;});var n10=Math.max(1,Math.round(keys.length*0.1));filtered=srtd.slice(0,n10);quadDesc='lowest margin brands (bottom 10%)';quadColor='#6b7280';}
+  var qName={stars:'Stars',workhorses:'Workhorses',niches:'Niches',dogs:'Dogs',bottom10:'Bottom 10%'}[quadrant];
+  var medUFmt=Math.round(medU).toLocaleString();
+  var medPFmt='$'+Math.round(medP).toLocaleString();
+  document.getElementById('cTitle').textContent='Brand Productivity \u2014 '+qName+' ('+filtered.length+')';
+  document.getElementById('cMeta').textContent=quadDesc+' \u00b7 medians: '+medUFmt+' units, '+medPFmt+' margin \u00b7 '+keys.length+' total brands';
   var cv=document.getElementById('mc');
   if(chart)chart.destroy();
   document.getElementById('pinCard').style.display='none';
-  var datasets=[];
-  allKeys.forEach(function(k,i){
-    var col=pal(i);
-    if(agg[k])datasets.push({label:lbl[k],data:[{x:agg[k].u,y:+agg[k].s.toFixed(2),_p:agg[k].p,_aur:agg[k].u>0?(agg[k].s/agg[k].u).toFixed(2):0}],backgroundColor:col+'88',borderColor:col,borderWidth:1.5,pointRadius:Math.max(3,Math.min(30,Math.round(Math.sqrt(agg[k].u)/3))),pointHoverRadius:Math.max(6,Math.min(34,Math.round(Math.sqrt(agg[k].u)/3)+4)),order:1});
-    if(hagg[k])datasets.push({label:(lbl[k]||('SKU '+k))+' (hist)',data:[{x:hagg[k].u,y:+hagg[k].s.toFixed(2),_p:hagg[k].p,_aur:hagg[k].u>0?(hagg[k].s/hagg[k].u).toFixed(2):0}],backgroundColor:'transparent',borderColor:col+'99',borderWidth:1.5,pointRadius:Math.max(3,Math.min(26,Math.round(Math.sqrt(hagg[k].u)/3))),pointHoverRadius:Math.max(5,Math.min(30,Math.round(Math.sqrt(hagg[k].u)/3)+3)),pointStyle:'circle',order:10});
+  var datasets=filtered.map(function(k){
+    var v=agg[k];
+    var r=Math.max(4,Math.min(30,Math.round(Math.sqrt(v.u)/3)));
+    return{label:lbl[k],data:[{x:v.u,y:+v.p.toFixed(0),_s:v.s}],backgroundColor:quadColor+'bb',borderColor:quadColor,borderWidth:1.5,pointRadius:r,pointHoverRadius:r+3};
   });
   chart=new Chart(cv.getContext('2d'),{type:'scatter',data:{datasets:datasets},options:{responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:datasets.length<=20,position:'top',labels:{boxWidth:10,font:{size:10},padding:6}},tooltip:{enabled:false}},
+    plugins:{legend:{display:datasets.length<=25,position:'top',labels:{boxWidth:10,font:{size:10},padding:6}},tooltip:{enabled:false}},
     onClick:function(evt,els){
       if(!els.length){document.getElementById('pinCard').style.display='none';return;}
       var el=els[0],ds=chart.data.datasets[el.datasetIndex],pt=ds.data[el.index];
       var rect=cv.getBoundingClientRect();
       showPin(evt.native.clientX-rect.left,evt.native.clientY-rect.top,ds.label,[
         '\uD83D\uDCE6 Units: '+pt.x.toLocaleString(),
-        '\uD83D\uDCB0 Revenue: $'+pt.y.toLocaleString(undefined,{maximumFractionDigits:0}),
-        '\u2705 Profit: $'+(pt._p||0).toLocaleString(undefined,{maximumFractionDigits:0}),
-        '\uD83C\uDFF7\uFE0F AUR: $'+pt._aur
+        '\u2705 Margin: $'+pt.y.toLocaleString(undefined,{maximumFractionDigits:0}),
+        '\uD83D\uDCB0 Sales: $'+(pt._s||0).toLocaleString(undefined,{maximumFractionDigits:0})
       ]);
     },
-    scales:{x:{title:{display:true,text:'Units Sold',font:{size:11}},ticks:{font:{size:10}}},
-      y:{title:{display:true,text:'Gross Revenue ($)',font:{size:11}},ticks:{font:{size:10},callback:function(v){return '$'+v.toLocaleString();}}}}}});
+    scales:{
+      x:{title:{display:true,text:'Units Sold (median: '+medUFmt+')',font:{size:11}},ticks:{font:{size:10}}},
+      y:{title:{display:true,text:'Margin $ (median: '+medPFmt+')',font:{size:11}},ticks:{font:{size:10},callback:function(v){return'$'+v.toLocaleString();}}}
+    }}});
 }
 
 function renderGrams(data,histData,g){
@@ -863,39 +832,6 @@ function showPin(ex,ey,label,lines){
   document.getElementById('pinBody').innerHTML=lines.join('<br>');
 }
 
-function renderBubble(data,histData){
-  document.getElementById('cTitle').textContent='Units vs. Gross Margin $ \u2014 bubble size = Gross Sales'+(showHist&&hasUpload?' \u2014 with Historical':'');
-  document.getElementById('cMeta').textContent='Click a bubble to pin info'+(showHist&&hasUpload?' \u00b7 hollow = historical':'');
-  var agg={},hagg={},lbl={};
-  data.forEach(function(r){var k=eKey(r);lbl[k]=eLabel(r);if(!agg[k])agg[k]={u:0,s:0,p:0};agg[k].u+=r.Units;agg[k].s+=r.Sales;agg[k].p+=r.Profit;});
-  if(histData)histData.forEach(function(r){var k=eKey(r);lbl[k]=lbl[k]||eLabel(r);if(!hagg[k])hagg[k]={u:0,s:0,p:0};hagg[k].u+=r.Units;hagg[k].s+=r.Sales;hagg[k].p+=r.Profit;});
-  var allKeys=[...new Set([...Object.keys(agg),...Object.keys(hagg)])];
-  var maxS=Math.max(...[...Object.values(agg),...Object.values(hagg)].map(function(v){return v.s;}));
-  var cv=document.getElementById('mc');
-  if(chart)chart.destroy();
-  document.getElementById('pinCard').style.display='none';
-  var datasets=[];
-  allKeys.forEach(function(k,i){
-    var c=pal(i);
-    if(agg[k])datasets.push({label:lbl[k],data:[{x:agg[k].u,y:+agg[k].p.toFixed(2),r:Math.max(3,Math.min(40,Math.round(Math.sqrt(Math.max(0,agg[k].s)/maxS)*36)+3)),_s:agg[k].s,_mp:agg[k].s>0?(agg[k].p/agg[k].s*100).toFixed(1):0}],backgroundColor:c+'88',borderColor:c,borderWidth:1.5,order:1});
-    if(hagg[k])datasets.push({label:(lbl[k]||('SKU '+k))+' (hist)',data:[{x:hagg[k].u,y:+hagg[k].p.toFixed(2),r:Math.max(3,Math.min(36,Math.round(Math.sqrt(Math.max(0,hagg[k].s)/maxS)*32)+2)),_s:hagg[k].s,_mp:hagg[k].s>0?(hagg[k].p/hagg[k].s*100).toFixed(1):0}],backgroundColor:'transparent',borderColor:c+'99',borderWidth:1.5,order:10});
-  });
-  chart=new Chart(cv.getContext('2d'),{type:'bubble',data:{datasets:datasets},options:{responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:datasets.length<=20,position:'top',labels:{boxWidth:10,font:{size:10},padding:6}},tooltip:{enabled:false}},
-    onClick:function(evt,els){
-      if(!els.length){document.getElementById('pinCard').style.display='none';return;}
-      var el=els[0],ds=chart.data.datasets[el.datasetIndex],pt=ds.data[el.index];
-      var rect=cv.getBoundingClientRect();
-      showPin(evt.native.clientX-rect.left,evt.native.clientY-rect.top,ds.label,[
-        '\uD83D\uDCE6 Units: '+pt.x.toLocaleString(),
-        '\uD83D\uDCB0 Sales: $'+(pt._s||0).toLocaleString(undefined,{maximumFractionDigits:0}),
-        '\u2705 Margin: $'+pt.y.toLocaleString(undefined,{maximumFractionDigits:0}),
-        '\uD83D\uDCC8 Margin%: '+pt._mp+'%'
-      ]);
-    },
-    scales:{x:{title:{display:true,text:'Units Sold',font:{size:11}},ticks:{font:{size:10}}},
-      y:{title:{display:true,text:'Gross Margin ($)',font:{size:11}},ticks:{font:{size:10},callback:function(v){return '$'+v.toLocaleString();}}}}}});
-}
 
 // ── Supabase data source ───────────────────────────────────────────────
 // These two values are filled in from your Supabase project (Settings -> API).
