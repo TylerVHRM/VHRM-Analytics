@@ -211,11 +211,11 @@ canvas{max-height:100%!important}
 const HIST_BD=[];
 const HIST_SD=[];
 const HIST_SM=[];
-let HIST_BRANDS=["-","14er","303 Cannabis","710 Labs","AO Extracts","Airgraft","AiroPro","Aliviar","Ardo","Arsty","Artsy","Atomic","Batch","Be One Kind","Billo","Binske","Bloom County","Blue Earth","Bonanza","Bonsai","Bosky","Boulder Built","Broadway","CAM","Cali Blaze","Candaze","Canna Club","CannaPunch","Captain","Care Division","Cheeba Chews","Cherry","Chronic Therapy","Clarity Gardens","Clearwater","Coda","Coda Signature","Colorado Vape","Connoisseur Shelf","Cookies","Craft","DOSD","Dablogic","Dadirri","Dandy Dimes","Del Mundo","Denver Dab Co","Dialed In","Divine","Doinks","Double Brow","Drool","EDW","Edun","Egozi","Eureka","Evergreen","Exotic Cropz","Fat Grams","Flora Co","Floraco","Flyin Hawaiian","Fox Cannabis","Freez-Its","Full Melt","Glacier Extracts","Good Chemistry","Good Tide","Good Trees","Grasshopper Farms","Grateful Grove","Green Apple Acres","Green Dot","Green Dot Labs","Green Dragon","Green Dragon (CO)","Green Pharms","Green Source","HAZE","Harmony","Harmony Extracts","Haze","Haze Silver","Herbal Garden","Hi-Fuel","Hi-Low","High Canyon","High Country Healing","High Grade","High Ryse","Honey Bud","House","IION","Incredibles","Indico","Jack Herer","Jetty","Journeyman","Joyibles","Juicy","Kaviar","Kaya","Keef Cola","Koala","Kush Masters","L'eagle","Lazercat","Leiffa","Level 10","Lit","Litties","LivWell","Livwell","Locol Love","Loud Craft Cannabis","Love's Oven","Lowell Farms","Loyalty Farms","MIle HIgh Suckers","Magik City","Magnitude","Major Beverage","Malek's","Mammoth Farms","Matter.","Melody Genetics","Meraki","Mezz","Mighty Melts","Mile High Dabs","Mountian High Suckers","Muncheez","My Brother's Flower","NFuzed","NOBO","Natty Rems","Newt Brothers","Next 1 Labs","Next1","Nfuzed","Nifty","Nine Extracts","Noot","Northern Standard","Nove","NuHi","Nuo","O.Pen","O.pen","OG Mixtapes","Oil","Olio","One Eleven","Oni","P3","PAX","PAX (CO)","PC Nursery","Packwoods","Panama Gold","Pearl","Petrol","PotCo","Prime Farms","Psycho Somatic","Purplebee's","Pyramid","Rad Rox","Rare Dankness","Rebel Edibles","Redwood","Retro","Ripple","Rivers (RVRS)","Roasted","Robhots","Sacco","Sano Gardens","Sauce","Seed & Smith","Seed and Strain","Sensi Shop","Shift","Silber Lake","Silver Lake","Sixty-Six","SkyIsLimit","Sloth","Smokiez","Sofa King Medicinal","Soiku Bano","Solstice","Somatic","Spherex","Stratos","Summit","Sun House","Sunhouse","Sunshine","Sunshine Extracts","Sweetwater","TS Labs","TasteBudz","The Clear","The Flower Collective","The Frost Collective","The Great Ascent","The Greenery Hash Factory","The Myx","Three Rivers","Tical","Trinidad Cultivation","Vera","Viola","WYLD","Wana","Wana Seasonal","Wavelength","West Edison","Western Skies","Westpine","White Meadows","White Moose","White Mousse","Wyld","X-Vape","Yetibles","York St"];
-let HIST_LOCS=["EDW - Aurora","EDW - Brighton","EDW - Central Boulder","EDW - Commerce City","EDW - DU (Dispensary)","EDW - Federal Heights","EDW - NW Denver/Pecos","EF - South Boulder","Green Dragon - 6th Ave (Aurora)","Green Dragon - Capitol Hill (Grant)","Green Dragon - Central Denver (Byers Place)","Green Dragon - Colfax (East Denver)","Green Dragon - Edgewater","Green Dragon - Fort Collins","Green Dragon - Fort Collins - College Ave","Green Dragon - Quincy (Aurora)","Green Dragon - Sheridan (West Denver)","LW - Berthoud","LW - Broomfield","LW - Buckley","LW - Central Park","LW - Colorado Blvd","LW - Cortez","LW - DTC","LW - Federal Heights","LW - Fort Collins","LW - Garden City","LW - Lakewood","LW - Log Lane","LW - Peoria","LW - Pueblo North","LW - RiNo","LW - Tower Road","LW - Uptown","SA - Denver","SB - Arapahoe","SB - Belmar","SB - Boulder","SB - Colorado Springs","SB - Fort Collins","SB - Garden City","SB - Glendale","SB - Highlands","SB - Lakeside","SB - Longmont","SB - Louisville","SB - Manitou Springs","SB - Niwot","SB - North Denver","SB - Pueblo","SB - Pueblo West"];
-let HIST_CATS=["Airgraft","Applicators (Syringe)","Beverages","Blunts","Cartridges","Chocolates","Classic Shelf","Confections","Connoisseur Shelf","Craft Shelf","Desserts - Baked Goods","Diamonds","Disposables","Elite Shelf","Every Day Weed Flower","GD - Pre-Pack Flower","Gummies","Infused Flower","Infused Pre-Rolls","LW MED - Bronze","LW MED - LivWell","LW MED - Plat","Live Resin","Live Resin Cartridges","Live Resin Pods","MED - Pre-Pack Flower","OZ Special","Pods","Pre-Pack Flower","Pre-Rolled","Premier Shelf","Reserve Shelf","SA - $110 OZ Shelf - Elite Shelf","SA - $130 OZ Shelf - Connoisseur Shelf","SA - $50 Oz Shelf - Oz Special","SA - $65 Oz Shelf - Select Shelf","SA - $85 Oz Shelf - Premier Shelf","Select Shelf","Shake Shelf","Shatter","Solventless","Solventless Cartridges","Solventless Disposables","Tablets","Tinctures","Value Shelf","Wax"];
-const HIST_DMIN='2025-10-27';
-const HIST_DMAX='2026-04-27';
+let HIST_BRANDS=[];
+let HIST_LOCS=[];
+let HIST_CATS=[];
+const HIST_DMIN='2026-01-01';
+const HIST_DMAX='2026-12-31';
 
 // Pre-computed badge lookup maps
 var _bB={},_bC={},_bCG={};
@@ -744,6 +744,7 @@ function renderBrandProductivity(data,quadrant){
   data.forEach(function(r){var k=eKey(r);lbl[k]=eLabel(r);if(!agg[k])agg[k]={u:0,p:0,s:0};agg[k].u+=r.Units;agg[k].p+=r.Profit;agg[k].s+=r.Sales;});
   var keys=Object.keys(agg);
   if(!keys.length)return;
+  var _maxS=Math.max.apply(null,keys.map(function(k){return agg[k].s;}))||1;
   var allU=keys.map(function(k){return agg[k].u;}).slice().sort(function(a,b){return a-b;});
   var allP=keys.map(function(k){return agg[k].p;}).slice().sort(function(a,b){return a-b;});
   var medU=allU[Math.floor(allU.length/2)];
@@ -758,13 +759,13 @@ function renderBrandProductivity(data,quadrant){
   var medUFmt=Math.round(medU).toLocaleString();
   var medPFmt='$'+Math.round(medP).toLocaleString();
   document.getElementById('cTitle').textContent='Brand Productivity \u2014 '+qName+' ('+filtered.length+')';
-  document.getElementById('cMeta').textContent=quadDesc+' \u00b7 medians: '+medUFmt+' units, '+medPFmt+' margin \u00b7 '+keys.length+' total brands';
+  document.getElementById('cMeta').textContent=quadDesc+' \u00b7 medians: '+medUFmt+' units, '+medPFmt+' margin \u00b7 '+keys.length+' total brands \u00b7 bubble size = Gross Sales $';
   var cv=document.getElementById('mc');
   if(chart)chart.destroy();
   document.getElementById('pinCard').style.display='none';
   var datasets=filtered.map(function(k){
     var v=agg[k];
-    var r=Math.max(4,Math.min(30,Math.round(Math.sqrt(v.u)/3)));
+    var r=Math.max(4,Math.min(34,Math.round(4+Math.sqrt(Math.max(0,v.s)/_maxS)*30)));
     return{label:lbl[k],data:[{x:v.u,y:+v.p.toFixed(0),_s:v.s}],backgroundColor:quadColor+'bb',borderColor:quadColor,borderWidth:1.5,pointRadius:r,pointHoverRadius:r+3};
   });
   chart=new Chart(cv.getContext('2d'),{type:'scatter',data:{datasets:datasets},options:{responsive:true,maintainAspectRatio:false,
