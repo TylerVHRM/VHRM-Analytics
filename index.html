@@ -224,7 +224,7 @@ function rebuildBadges(){
   liveBrand.forEach(function(s){
     _bB[s.Brand]=(_bB[s.Brand]||0)+s.Units;
     _bC[s.Classification]=(_bC[s.Classification]||0)+s.Units;
-    var cg=typeof CLS_TO_CAT!=='undefined'?CLS_TO_CAT[s.Classification]:null;
+    var cg=catOf(s);
     if(cg)_bCG[cg]=(_bCG[cg]||0)+s.Units;
   });
 }
@@ -244,6 +244,8 @@ let liveBrand=[..._LIVE_BRAND],liveSKU=[..._LIVE_SKU],liveMaster=Object.values(_
 let ALL_BRANDS=[...new Set(_LIVE_BRAND.map(r=>r.Brand))].sort();
 let ALL_LOCS=[...new Set(_LIVE_BRAND.map(r=>r.Location).filter(Boolean))].sort();
 let ALL_CATS=[...new Set(_LIVE_BRAND.map(r=>r.Classification).filter(Boolean))].sort();
+function cgFromCls(cls){if(!cls)return null;return CLS_TO_CAT[cls]||CLS_TO_CAT[cls.replace(/\s+\d+$/,'')]||null;}
+function catOf(r){return (r&&r.CategoryGroup)?r.CategoryGroup:cgFromCls(r&&r.Classification);}
 const CLS_TO_CAT={"Airgraft":"Vapes","Apparel":"Accessories","Applicators (Syringe)":"Concentrates","Balms - Salves":"Topicals","Bath":"Accessories","Batteries":"Accessories","Beverages":"Edibles","Blunts":"Pre-Rolls","Cartridges":"Vapes","Chocolates":"Edibles","Confections":"Edibles","Connoisseur Shelf":"Flower","Dab Tools - Dab Accessories":"Accessories","Desserts - Baked Goods":"Edibles","Devices":"Accessories","Diamonds":"Concentrates","Disposables":"Vapes","Elite Shelf":"Flower","Fees":"Misc","General Merchandise":"Accessories","Glassware":"Accessories","Gummies":"Edibles","Infused Flower":"Concentrates","Infused Pre-Rolls":"Pre-Rolls","Integrated Gift Card":"Misc","Live Resin":"Concentrates","Live Resin Cartridges":"Vapes","Live Resin Pods":"Vapes","Lotions":"Topicals","MED - Pre-Pack Flower":"Flower","OZ Special":"Flower","Pods":"Vapes","Premier Shelf":"Flower","Pre-Rolled":"Pre-Rolls","Rolling Supplies":"Accessories","Rounding":"Misc","SA - $110 OZ Shelf":"Flower","SA - $130 OZ Shelf":"Flower","SA - $40 OZ Shelf":"Flower","SA - $50 Oz Shelf":"Flower","SA - $55 OZ Shelf":"Flower","SA - $60 OZ Shelf":"Flower","SA - $65 Oz Shelf":"Flower","SA - $70 Oz Shelf":"Flower","SA - $80 Oz Shelf":"Flower","SA - $85 Oz Shelf":"Flower","SA - $90 Oz Shelf":"Flower","SA - $95 Oz Shelf":"Flower","SA - Green Dot Black Label Shelf":"Flower","SA - Shake Shelf":"Flower","Select Shelf":"Flower","Shake Shelf":"Flower","Shatter":"Concentrates","Smoking Accessories":"Accessories","Solventless":"Concentrates","Solventless Cartridges":"Vapes","Solventless Disposables":"Vapes","Solventless Pods":"Vapes","Sunkissed Shelf":"Flower","Tablets":"Edibles","Tinctures":"Edibles","Transdermals":"Topicals","Wax":"Concentrates","Classic Shelf":"Flower","Craft Shelf":"Flower","Every Day Weed Flower":"Flower","GD - Pre-Pack Flower":"Flower","LW MED - Bronze":"Flower","LW MED - LivWell":"Flower","LW MED - Plat":"Flower","Pre-Pack Flower":"Flower","Reserve Shelf":"Flower","SA - $110 OZ Shelf - Elite Shelf":"Flower","SA - $130 OZ Shelf - Connoisseur Shelf":"Flower","SA - $50 Oz Shelf - Oz Special":"Flower","SA - $65 Oz Shelf - Select Shelf":"Flower","SA - $85 Oz Shelf - Premier Shelf":"Flower"};
 const ALL_CAT_GROUPS=["Accessories", "Concentrates", "Edibles", "Flower", "Misc", "Pre-Rolls", "Topicals", "Vapes"];
 const GRAM_CLS=new Set(["Blunts", "Classic Shelf", "Connoisseur Shelf", "Craft Shelf", "Elite Shelf", "Every Day Weed Flower", "GD - Pre-Pack Flower", "Infused Pre-Rolls", "MED - Pre-Pack Flower", "OZ Special", "Pre-Pack Flower", "Pre-Rolled", "Premier Shelf", "Reserve Shelf", "SA - $110 OZ Shelf", "SA - $130 OZ Shelf", "SA - $40 OZ Shelf", "SA - $50 Oz Shelf", "SA - $55 OZ Shelf", "SA - $60 OZ Shelf", "SA - $65 Oz Shelf", "SA - $70 OZ Shelf", "SA - $80 OZ Shelf", "SA - $85 Oz Shelf", "SA - $90 OZ Shelf", "SA - $95 OZ Shelf", "SA - Green Dot Black Label Shelf", "SA - Shake Shelf", "Select Shelf", "Shake Shelf", "Sunkissed Shelf"]);
@@ -363,7 +365,7 @@ function processCSV(text,fname){
   ALL_CATS=[...new Set(liveBrand.map(r=>r.Classification).filter(Boolean))].sort();
   ALL_LOCS=[...new Set(liveBrand.map(r=>r.Location).filter(Boolean))].sort();
   // Rebuild category groups from new data
-  const newCGs=[...new Set(ALL_CATS.map(cl=>CLS_TO_CAT[cl]).filter(Boolean))].sort();
+  const newCGs=[...new Set(ALL_CATS.map(cl=>cgFromCls(cl)).filter(Boolean))].sort();
   newCGs.forEach(g=>{if(!ALL_CAT_GROUPS.includes(g))ALL_CAT_GROUPS.push(g);});
   ALL_CAT_GROUPS.sort();
   selCG=new Set(ALL_CAT_GROUPS);
@@ -458,7 +460,7 @@ function filterData(srcBrand,srcSKU){
     if(r.Date<from||r.Date>to) continue;
     if(!selB.has(r.Brand)) continue;
     if(r.Classification&&!selC.has(r.Classification)) continue;
-    if(r.Classification&&typeof CLS_TO_CAT!=='undefined'&&typeof selCG!=='undefined'){var cg=CLS_TO_CAT[r.Classification];if(cg&&!selCG.has(cg))continue;}
+    if(r.Classification&&typeof selCG!=='undefined'){var cg=catOf(r);if(cg&&!selCG.has(cg))continue;}
     // Store filtering is done server-side (rows are pre-summed over selected stores).
     if(_medFilter==='med'&&!r.Medical) continue;
     if(_medFilter==='rec'&&r.Medical) continue;
@@ -478,7 +480,7 @@ function filterHist(){
     var r=src[i];
     if(!selB.has(r.Brand)) continue;
     if(r.Classification&&!selC.has(r.Classification)) continue;
-    if(r.Classification&&typeof CLS_TO_CAT!=='undefined'&&typeof selCG!=='undefined'){var cg=CLS_TO_CAT[r.Classification];if(cg&&!selCG.has(cg))continue;}
+    if(r.Classification&&typeof selCG!=='undefined'){var cg=catOf(r);if(cg&&!selCG.has(cg))continue;}
     if(r.Location&&!selL.has(r.Location)) continue;
     if(isSkuDim&&!selK.has(r.SKU)) continue;
     result.push(r);
