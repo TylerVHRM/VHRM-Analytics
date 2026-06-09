@@ -517,9 +517,9 @@ function buildGrid(data,g,from,to){
     var r=data[i],p=pk(r,g),k=eKey(r);
     if(!lbl[k])lbl[k]=eLabel(r);
     if(!agg[k])agg[k]={};
-    if(!agg[k][p])agg[k][p]={u:0,s:0,p:0,g:0};
+    if(!agg[k][p])agg[k][p]={u:0,s:0,ns:0,p:0,g:0};
     var pp=agg[k][p];
-    pp.u+=r.Units;pp.s+=r.Sales;pp.p+=r.Profit;pp.g+=(r.Grams||0);
+    pp.u+=r.Units;pp.s+=r.Sales;pp.ns+=(r.NetSales!=null?r.NetSales:r.Sales);pp.p+=r.Profit;pp.g+=(r.Grams||0);
   }
   var f=from||document.getElementById('dFrom').value;
   var t=to||document.getElementById('dTo').value;
@@ -529,27 +529,27 @@ function buildGrid(data,g,from,to){
 
 // ── KPIs ───────────────────────────────────────────────────────────────
 function updateKPIs(data,histData){
-  var U=0,S=0,P=0,G=0; var entSet=new Set();
-  for(var i=0;i<data.length;i++){var r=data[i];U+=r.Units;S+=r.Sales;P+=r.Profit;G+=(r.Grams||0);entSet.add(dim==='sku'?r.SKU:r.Brand);}
+  var U=0,S=0,NS=0,P=0,G=0; var entSet=new Set();
+  for(var i=0;i<data.length;i++){var r=data[i];U+=r.Units;S+=r.Sales;NS+=(r.NetSales!=null?r.NetSales:r.Sales);P+=r.Profit;G+=(r.Grams||0);entSet.add(dim==='sku'?r.SKU:r.Brand);}
   var fmt=function(n){return n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+(n/1e3).toFixed(0)+'K':'$'+n.toFixed(0);};
   var fmtG=function(n){return n>=1000?(n/1000).toFixed(1)+'kg':n.toFixed(0)+'g';};
   document.getElementById('kU').textContent=U>=1e3?(U/1e3).toFixed(0)+'K':U.toLocaleString();
   document.getElementById('kS').textContent=fmt(S);
   document.getElementById('kP').textContent=fmt(P);
-  document.getElementById('kM').textContent=S>0?(P/S*100).toFixed(1)+'%':'--';
+  document.getElementById('kM').textContent=NS>0?(P/NS*100).toFixed(1)+'%':'--';
   document.getElementById('kA').textContent=U>0?'$'+(S/U).toFixed(2):'--';
   document.getElementById('kI').textContent=entSet.size;
   var kG=document.getElementById('kG');if(kG)kG.textContent=G>0?fmtG(G):'--';
   if(histData&&showHist&&hasUpload){
-    var hU=0,hS=0,hP=0;
-    for(var j=0;j<histData.length;j++){hU+=histData[j].Units;hS+=histData[j].Sales;hP+=histData[j].Profit;}
+    var hU=0,hS=0,hNS=0,hP=0;
+    for(var j=0;j<histData.length;j++){hU+=histData[j].Units;hS+=histData[j].Sales;hNS+=(histData[j].NetSales!=null?histData[j].NetSales:histData[j].Sales);hP+=histData[j].Profit;}
     var d=function(v,hv){if(!hv)return '';return(v>=hv?'+':'')+((v-hv)/Math.abs(hv)*100).toFixed(1)+'% vs hist';};
     ['kUd','kSd','kPd','kMd','kAd','kId','kGd'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='';});
     var el;
     el=document.getElementById('kUd');if(el)el.textContent=d(U,hU);
     el=document.getElementById('kSd');if(el)el.textContent=d(S,hS);
     el=document.getElementById('kPd');if(el)el.textContent=d(P,hP);
-    el=document.getElementById('kMd');if(el)el.textContent=S>0&&hS>0?((P/S-hP/hS)*100).toFixed(1)+'pp vs hist':'';
+    el=document.getElementById('kMd');if(el)el.textContent=NS>0&&hNS>0?((P/NS-hP/hNS)*100).toFixed(1)+'pp vs hist':'';
     el=document.getElementById('kAd');if(el&&U>0&&hU>0)el.textContent=((S/U-hS/hU)>=0?'+':'')+'$'+((S/U)-(hS/hU)).toFixed(2)+' vs hist';
   }else{
     ['kUd','kSd','kPd','kMd','kAd','kId','kGd'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='';});
@@ -625,7 +625,7 @@ function histDatasets(histData,g,metric){
   return ents.map((k,i)=>({
     label:lbl[k]+' (hist)',
     data:periods.map(p=>{const v=agg[k]?.[p];if(!v||!v.u)return null;
-      return metric==='aur'?+(v.s/v.u).toFixed(2):metric==='margin'?+(v.p/v.s*100).toFixed(2):v.u;}),
+      return metric==='aur'?+(v.s/v.u).toFixed(2):metric==='margin'?+(v.p/(v.ns||v.s)*100).toFixed(2):v.u;}),
     borderColor:pal(i)+'99',
     backgroundColor:'transparent',
     borderDash:[5,4],
@@ -649,7 +649,7 @@ function renderLine(data,histData,g,metric){
     label:lbl[k],
     data:periods.map(p=>{const v=agg[k]?.[p];
       if(metric==='aur')return (v&&v.u)?+(v.s/v.u).toFixed(2):null;        // ratio: gap when no sales (connected)
-      if(metric==='margin')return (v&&v.s)?+(v.p/v.s*100).toFixed(2):null; // ratio: gap when no sales (connected)
+      if(metric==='margin')return (v&&(v.ns||v.s))?+(v.p/(v.ns||v.s)*100).toFixed(2):null; // net realized margin: gap when no sales (connected)
       return v?v.u:0;}),                                                   // count: zero-fill (continuous line, zeros visible)
     borderColor:pal(i),backgroundColor:pal(i)+'20',
     tension:.3,pointRadius:g==='day'?1.5:3.5,pointHoverRadius:6,
@@ -667,14 +667,14 @@ function renderLine(data,histData,g,metric){
     currentDS.forEach(ds=>{
       const ek=ents[currentDS.indexOf(ds)];
       ds.data=allPeriods.map(p=>{const v=agg[ek]?.[p];if(!v||!v.u)return null;
-        return metric==='aur'?+(v.s/v.u).toFixed(2):metric==='margin'?+(v.p/v.s*100).toFixed(2):v.u;});
+        return metric==='aur'?+(v.s/v.u).toFixed(2):metric==='margin'?+(v.p/(v.ns||v.s)*100).toFixed(2):v.u;});
     });
     // Re-map historical data to full period array
     const{agg:hagg,ents:hents}=buildGrid(histData,g,HIST_DMIN,HIST_DMAX);
     hDS.forEach((ds,i)=>{
       const ek=hents[i];
       ds.data=allPeriods.map(p=>{const v=hagg[ek]?.[p];if(!v||!v.u)return null;
-        return metric==='aur'?+(v.s/v.u).toFixed(2):metric==='margin'?+(v.p/v.s*100).toFixed(2):v.u;});
+        return metric==='aur'?+(v.s/v.u).toFixed(2):metric==='margin'?+(v.p/(v.ns||v.s)*100).toFixed(2):v.u;});
     });
   }
   const ycb=metric==='aur'?v=>'$'+v:metric==='margin'?v=>v+'%':v=>v.toLocaleString();
